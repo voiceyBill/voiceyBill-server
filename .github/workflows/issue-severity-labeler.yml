@@ -1,0 +1,79 @@
+name: Issue Severity Labeler
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  issues: write
+
+jobs:
+  apply-severity-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Map severity to labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+
+            const severityLabels = [
+              { name: 'priority:s1', color: 'b60205', description: 'Critical priority' },
+              { name: 'priority:s2', color: 'd93f0b', description: 'High priority' },
+              { name: 'priority:s3', color: 'fbca04', description: 'Medium priority' },
+              { name: 'priority:s4', color: '0e8a16', description: 'Low priority' }
+            ];
+
+            for (const label of severityLabels) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ...label
+                  });
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+            let target = null;
+            if (/S1 - Critical/i.test(body)) target = 'priority:s1';
+            if (/S2 - High/i.test(body)) target = 'priority:s2';
+            if (/S3 - Medium/i.test(body)) target = 'priority:s3';
+            if (/S4 - Low/i.test(body)) target = 'priority:s4';
+
+            const existing = issue.labels.map((l) => typeof l === 'string' ? l : l.name);
+            const toRemove = existing.filter((name) => /^priority:s[1-4]$/i.test(name));
+
+            for (const name of toRemove) {
+              if (name !== target) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    name
+                  });
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
+              }
+            }
+
+            if (target && !existing.includes(target)) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: [target]
+              });
+            }

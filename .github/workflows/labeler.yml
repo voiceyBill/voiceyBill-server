@@ -1,0 +1,51 @@
+name: PR Auto Labeler
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: Apply path labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure labels exist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              { name: 'backend', color: '1d76db', description: 'Changes backend source code' },
+              { name: 'ci/cd', color: '5319e7', description: 'Changes CI/CD workflows and automation' },
+              { name: 'docs', color: '0e8a16', description: 'Documentation-only changes' },
+              { name: 'dependencies', color: 'fbca04', description: 'Dependency updates' },
+              { name: 'config', color: '0052cc', description: 'Configuration and environment changes' }
+            ];
+
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name
+                });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ...label
+                  });
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+      - name: Label pull request
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

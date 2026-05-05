@@ -1,0 +1,87 @@
+name: Feature request
+description: Propose an improvement with clear scope and acceptance criteria
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an enhancement. The clearer this request is, the faster it can be evaluated.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve?
+      placeholder: I cannot easily ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe your ideal solution.
+      placeholder: We could add ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Expected impact
+      options:
+        - High (core user value)
+        - Medium (important improvement)
+        - Low (nice to have)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - API / backend
+        - Web / frontend
+        - Developer experience
+        - Documentation
+        - Security
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative approaches you considered.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Define what done looks like.
+      placeholder: |
+        - [ ] Users can ...
+        - [ ] API returns ...
+        - [ ] Docs updated
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Additional context
+      description: Links, screenshots, mockups, or examples.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I explained why this is valuable for the project.
+          required: true
+

@@ -1,0 +1,103 @@
+name: Bug report
+description: Report a reproducible bug with diagnostics
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Complete this form so maintainers can triage quickly.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How much does this affect users?
+      options:
+        - S1 - Critical (service down, data loss, security risk)
+        - S2 - High (major functionality broken)
+        - S3 - Medium (workaround exists)
+        - S4 - Low (minor issue)
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Bug summary
+      description: What happened and why is it a bug?
+      placeholder: A clear and concise summary of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide deterministic reproduction steps.
+      placeholder: |
+        1. Configure ...
+        2. Call endpoint ...
+        3. Observe error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: What actually happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: frequency
+    attributes:
+      label: Frequency
+      description: How often does this happen?
+      placeholder: Always, intermittently, only in production, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment details
+      description: Include OS, Node version, package manager, browser/client, and deployment target.
+      placeholder: Ubuntu 22.04, Node 20.14, npm 10, Chrome 124, Vercel preview
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Affected area
+      description: Which modules, endpoints, screens, or features are impacted?
+      placeholder: report.controller.ts, /api/reports, Transactions page
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, stack traces, and screenshots
+      description: Paste complete error output and screenshots where relevant.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I included enough details to reproduce this issue.
+          required: true
+        - label: I removed secrets, tokens, and private data from logs.
+          required: true

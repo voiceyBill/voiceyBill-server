@@ -1,0 +1,41 @@
+name: Question
+description: Ask a usage, architecture, or implementation question
+title: "[Question]: "
+labels: ["question", "needs-triage"]
+body:
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      options:
+        - Setup and installation
+        - API usage
+        - Frontend usage
+        - Deployment
+        - CI/CD
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      placeholder: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Share what you already tried and where you got stuck.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the project docs and existing issues first.
+          required: true
+
