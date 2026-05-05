@@ -25,6 +25,8 @@ const allowedOrigins = new Set(
   [
     "http://localhost:5173",
     "https://voiceybill.vercel.app",
+    "https://voiceybill.com",
+    "https://www.voiceybill.com",
     Env.FRONTEND_ORIGIN,
   ].filter(Boolean),
 );

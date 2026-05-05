@@ -11,12 +11,13 @@ router.use(cors({
     
     const allowedOrigins = [
       "http://localhost:5173",
-      "https://smart-money-tracker.vercel.app",
-      "https://smart-money-tracker-git-frontend-branch-smart-money-tracker.vercel.app"
+      "https://voiceybill.vercel.app",
+      "https://voiceybill.com",
+      "https://www.voiceybill.com",
     ];
-    
-    const isAllowed = allowedOrigins.includes(origin) || 
-                     origin.includes('smart-money-tracker') && origin.includes('vercel.app');
+
+    const isAllowed = allowedOrigins.includes(origin) ||
+                     origin.includes('voiceybill') && origin.includes('vercel.app');
     
     if (isAllowed) {
       callback(null, true);
