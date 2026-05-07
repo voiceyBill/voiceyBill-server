@@ -19,7 +19,8 @@ Describe what changed and why.
 ## Scope
 
 - [ ] backend
-- [ ] frontend
+- [ ] client (web)
+- [ ] mobile (React Native)
 - [ ] CI/CD
 - [ ] docs
 
@@ -29,16 +30,22 @@ List steps to validate this change locally.
 
 ## Validation output
 
-Paste command outputs:
+Paste relevant command output:
 
-```bash
-npm run build
-npm test --if-present
+```
+# backend
+npm run build && npm test --if-present
+
+# client
+npm run build && npm run lint
+
+# mobile
+npx tsc --noEmit
 ```
 
 ## Screenshots or recordings
 
-Attach screenshots for UI-related changes.
+Attach screenshots for any UI-related changes (web or mobile).
 
 ## Breaking changes
 
