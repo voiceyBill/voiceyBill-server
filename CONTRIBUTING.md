@@ -1,6 +1,6 @@
-# Contributing to voiceyBill-server
+# Contributing to VoiceyBill
 
-Thanks for your interest in contributing.
+Thanks for your interest in contributing. This guide covers all three packages in the monorepo: **backend**, **client (web)**, and **mobile**.
 
 ## Ground rules
 
@@ -9,46 +9,96 @@ Thanks for your interest in contributing.
 - Open an issue before starting major features.
 - Do not include secrets or production credentials in any commit.
 
-## Development setup
+---
 
-1. Fork and clone the repository.
-2. Use Node.js 20 or later.
-3. Install dependencies:
+## Backend
+
+**Location:** `backend/`  
+**Stack:** Express, TypeScript, MongoDB, Passport.js
+
+### Setup
 
 ```bash
+cd backend
+cp .env.example .env   # fill in required values
 npm ci
-```
-
-4. Start the development server:
-
-```bash
 npm run dev
 ```
 
-## Branch and commit conventions
-
-- Branch names should be descriptive, for example:
-  - `feat/add-voice-summary`
-  - `fix/report-cron-timezone`
-- Use clear commits that explain why the change is needed.
-
-## Pull request requirements
-
-- PR titles are validated in CI and should follow Conventional Commits style:
-  - `feat(auth): Add refresh token endpoint`
-  - `fix(report): Handle empty transaction list`
-- Keep PRs small and easy to review.
-- Link related issues, for example `Closes #123`.
-- Include screenshots or API examples if behavior changed.
-
-## Quality checks
-
-Before opening a PR, run:
+### Quality checks
 
 ```bash
 npm run build
 npm test --if-present
 ```
+
+---
+
+## Client (web)
+
+**Location:** `client/`  
+**Stack:** React 19, Vite, Tailwind CSS, Redux Toolkit
+
+### Setup
+
+```bash
+cd client
+cp .env.example .env   # set VITE_API_URL
+npm ci
+npm run dev
+```
+
+### Quality checks
+
+```bash
+npm run build
+npm run lint
+```
+
+---
+
+## Mobile
+
+**Location:** `mobile/`  
+**Stack:** React Native 0.81, Expo 54, Redux Toolkit
+
+### Setup
+
+```bash
+cd mobile
+cp .env.example .env   # set EXPO_PUBLIC_API_URL to your local machine IP
+npm ci
+npx expo start
+```
+
+> Use your machine's LAN IP (not `localhost`) so the device/emulator can reach the backend.
+
+### Quality checks
+
+```bash
+npx expo export         # verify the app bundles without errors
+npx tsc --noEmit        # TypeScript type check
+```
+
+---
+
+## Branch and commit conventions
+
+- Branch names should be descriptive, for example:
+  - `feat/voice-transcription-card`
+  - `fix/mobile-theme-tokens`
+  - `docs/update-mobile-readme`
+- Use clear commits that explain why the change is needed.
+
+## Pull request requirements
+
+- PR titles follow Conventional Commits style:
+  - `feat(mobile): Add transcription result card`
+  - `fix(client): Correct income chart colour tokens`
+  - `chore(backend): Upgrade Mongoose to v8`
+- Keep PRs small and easy to review.
+- Link related issues, for example `Closes #123`.
+- Include screenshots or recordings for any UI-related changes.
 
 ## Issue reporting
 
