@@ -18,11 +18,19 @@ export const sendEmail = async ({
   text,
   html,
 }: Params) => {
-  return await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from,
     to: Array.isArray(to) ? to : [to],
     text,
     subject,
     html,
   });
+
+  if (error) {
+    console.error("Resend error:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("Email sent successfully, id:", data?.id);
+  return data;
 };
