@@ -132,11 +132,11 @@ app.get(
 );
 
 app.use(`${BASE_PATH}/auth`, ensureDatabaseConnection, authRoutes);
-app.use(`${BASE_PATH}/user`, passportAuthenticateJwt, userRoutes);
-app.use(`${BASE_PATH}/transaction`, passportAuthenticateJwt, transactionRoutes);
-app.use(`${BASE_PATH}/report`, passportAuthenticateJwt, reportRoutes);
-app.use(`${BASE_PATH}/analytics`, passportAuthenticateJwt, analyticsRoutes);
-app.use(`${BASE_PATH}/voice`, passportAuthenticateJwt, voiceRoutes);
+app.use(`${BASE_PATH}/user`, ensureDatabaseConnection, passportAuthenticateJwt, userRoutes);
+app.use(`${BASE_PATH}/transaction`, ensureDatabaseConnection, passportAuthenticateJwt, transactionRoutes);
+app.use(`${BASE_PATH}/report`, ensureDatabaseConnection, passportAuthenticateJwt, reportRoutes);
+app.use(`${BASE_PATH}/analytics`, ensureDatabaseConnection, passportAuthenticateJwt, analyticsRoutes);
+app.use(`${BASE_PATH}/voice`, ensureDatabaseConnection, passportAuthenticateJwt, voiceRoutes);
 
 // Catch-all route for 404 errors
 app.use((req: Request, res: Response) => {
