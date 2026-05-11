@@ -6,14 +6,12 @@ type Params = {
   subject: string;
   text: string;
   html: string;
-  from?: string;
+  from: string;
 };
-
-const mailer_sender = `VoiceyBill <${Env.RESEND_MAILER_SENDER}>`;
 
 export const sendEmail = async ({
   to,
-  from = mailer_sender,
+  from,
   subject,
   text,
   html,

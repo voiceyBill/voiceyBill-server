@@ -1,8 +1,22 @@
 import { Request, Response } from "express";
 import { HTTPSTATUS } from "../config/http.config";
 import { asyncHandler } from "../middlewares/asyncHandler.middlerware";
-import { loginSchema, registerSchema } from "../validators/auth.validator";
-import { loginService, registerService } from "../services/auth.service";
+import {
+  forgotPasswordSchema,
+  loginSchema,
+  registerSchema,
+  resendOtpSchema,
+  resetPasswordSchema,
+  verifyOtpSchema,
+} from "../validators/auth.validator";
+import {
+  forgotPasswordService,
+  loginService,
+  registerService,
+  resendOtpService,
+  resetPasswordService,
+  verifyOtpService,
+} from "../services/auth.service";
 
 export const registerController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -11,7 +25,7 @@ export const registerController = asyncHandler(
     const result = await registerService(body);
 
     return res.status(HTTPSTATUS.CREATED).json({
-      message: "User registered successfully",
+      message: "Verification code sent to your email",
       data: result,
     });
   }
@@ -31,6 +45,51 @@ export const loginController = asyncHandler(
       accessToken,
       expiresAt,
       reportSetting,
+    });
+  }
+);
+
+export const verifyOtpController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = verifyOtpSchema.parse(req.body);
+    const result = await verifyOtpService(body);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Email verified successfully",
+      data: result,
+    });
+  }
+);
+
+export const resendOtpController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = resendOtpSchema.parse(req.body);
+    const result = await resendOtpService(body);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: result.message,
+    });
+  }
+);
+
+export const forgotPasswordController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = forgotPasswordSchema.parse(req.body);
+    const result = await forgotPasswordService(body);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: result.message,
+    });
+  }
+);
+
+export const resetPasswordController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = resetPasswordSchema.parse(req.body);
+    const result = await resetPasswordService(body);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: result.message,
     });
   }
 );
