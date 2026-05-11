@@ -22,7 +22,14 @@ const envConfig = () => ({
   CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET"),
 
   RESEND_API_KEY: getEnv("RESEND_API_KEY"),
-  RESEND_MAILER_SENDER: getEnv("RESEND_MAILER_SENDER", ""),
+  RESEND_MAILER_SENDER_REPORTS: getEnv(
+    "RESEND_MAILER_SENDER_REPORTS",
+    "reports@voiceybill.com"
+  ),
+  RESEND_MAILER_SENDER_VERIFY: getEnv(
+    "RESEND_MAILER_SENDER_VERIFY",
+    "verify@voiceybill.com"
+  ),
 
   FRONTEND_ORIGIN: getEnv("FRONTEND_ORIGIN", "http://localhost:5173"),
 });

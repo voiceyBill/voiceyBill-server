@@ -37,6 +37,16 @@ export class NotFoundException extends AppError {
   }
 }
 
+export class ConflictException extends AppError {
+  constructor(message = "Conflict", errorCode?: ErrorCodeEnumType) {
+    super(
+      message,
+      HTTPSTATUS.CONFLICT,
+      errorCode || ErrorCodeEnum.AUTH_EMAIL_ALREADY_EXISTS
+    );
+  }
+}
+
 export class BadRequestException extends AppError {
   constructor(message = "Bad Request", errorCode?: ErrorCodeEnumType) {
     super(

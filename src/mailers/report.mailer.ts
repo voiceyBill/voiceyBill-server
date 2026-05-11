@@ -2,6 +2,7 @@ import { formatCurrency } from "../utils/format-currency";
 import { getReportEmailTemplate } from "./templates/report.template";
 import { sendEmail } from "./mailer";
 import { ReportType } from "../@types/report.type";
+import { Env } from "../config/env.config";
 
 type ReportEmailParams = {
   email: string;
@@ -33,6 +34,7 @@ export const sendReportEmail = async (params: ReportEmailParams) => {
 
   return sendEmail({
     to: email,
+    from: `VoiceyBill <${Env.RESEND_MAILER_SENDER_REPORTS}>`,
     subject: `${frequency} Financial Report - ${report.period}`,
     text,
     html,

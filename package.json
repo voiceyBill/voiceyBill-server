@@ -40,6 +40,7 @@
     "resend": "^4.5.1",
     "uuid": "^11.1.0",
     "zod": "^3.25.46"
+    ,"express-rate-limit": "^6.7.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

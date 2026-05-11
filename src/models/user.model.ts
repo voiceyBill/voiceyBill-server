@@ -6,6 +6,11 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   profilePicture: string | null;
+  isVerified: boolean;
+  emailVerificationOtpHash?: string | null;
+  emailVerificationOtpExpiresAt?: Date | null;
+  passwordResetOtpHash?: string | null;
+  passwordResetOtpExpiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
@@ -35,6 +40,30 @@ const userSchema = new Schema<UserDocument>(
       select: true,
       required: true,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationOtpHash: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    emailVerificationOtpExpiresAt: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+    passwordResetOtpHash: {
+      type: String,
+      select: false,
+      default: null,
+    },
+    passwordResetOtpExpiresAt: {
+      type: Date,
+      select: false,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -53,6 +82,10 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.omitPassword = function (): Omit<UserDocument, "password"> {
   const userObject = this.toObject();
   delete userObject.password;
+  delete userObject.emailVerificationOtpHash;
+  delete userObject.emailVerificationOtpExpiresAt;
+  delete userObject.passwordResetOtpHash;
+  delete userObject.passwordResetOtpExpiresAt;
   return userObject;
 };
 
