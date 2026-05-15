@@ -18,6 +18,8 @@ import {
   verifyOtpService,
 } from "../services/auth.service";
 
+const resendCooldowns = new Map<string, number>();
+
 export const registerController = asyncHandler(
   async (req: Request, res: Response) => {
     const body = registerSchema.parse(req.body);
@@ -64,6 +66,17 @@ export const verifyOtpController = asyncHandler(
 export const resendOtpController = asyncHandler(
   async (req: Request, res: Response) => {
     const body = resendOtpSchema.parse(req.body);
+    const { email } = body;
+
+    const now = Date.now();
+    const lastSent = resendCooldowns.get(email);
+    if (lastSent && now - lastSent < 60000) {
+      return res.status(429).json({
+        message: "Too many requests. Please wait before requesting another code.",
+      });
+    }
+    resendCooldowns.set(email, now);
+
     const result = await resendOtpService(body);
 
     return res.status(HTTPSTATUS.OK).json({
