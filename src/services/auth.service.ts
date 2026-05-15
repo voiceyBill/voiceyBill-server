@@ -29,6 +29,8 @@ import {
 import { sendVerificationOtpEmail } from "../mailers/verification.mailer";
 import { sendPasswordResetEmail } from "../mailers/password-reset.mailer";
 
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
+
 const createDefaultReportSetting = async (
   userId: mongoose.Types.ObjectId,
   session?: mongoose.ClientSession
@@ -52,7 +54,11 @@ const createDefaultReportSetting = async (
     lastSentDate: null,
   });
 
-  await reportSetting.save(session ? { session } : undefined);
+  if (session) {
+    await reportSetting.save({ session });
+  } else {
+    await reportSetting.save();
+  }
 
   return reportSetting;
 };
@@ -110,12 +116,16 @@ export const registerService = async (body: RegisterSchemaType) => {
 
       const user = existingUser || new UserModel({ ...body, isVerified: false });
 
-      user.set({
-        name: body.name,
-        email: body.email,
-        password: body.password,
-        isVerified: false,
-      });
+      if (!existingUser) {
+        await user.save({ session });
+      } else {
+        user.set({
+          name: body.name,
+          password: body.password,
+          isVerified: false,
+        });
+        await user.save({ session });
+      }
 
       const otp = await issueVerificationOtp(user, session);
 
@@ -162,9 +172,7 @@ export const loginService = async (body: LoginSchemaType) => {
   const { token, expiresAt } = signJwtToken({ userId: user.id });
 
   const reportSetting = await ReportSettingModel.findOne(
-    {
-      userId: user.id,
-    },
+    { userId: user.id },
     { _id: 1, frequency: 1, isEnabled: 1 }
   ).lean();
 
@@ -268,15 +276,30 @@ export const resendOtpService = async (body: ResendOtpSchemaType) => {
   }
 
   const verificationUser = await UserModel.findOne({ email }).select(
-    "+emailVerificationOtpHash +emailVerificationOtpExpiresAt"
+    "+emailVerificationOtpHash +emailVerificationOtpExpiresAt +lastOtpResentAt"
   );
 
   if (!verificationUser) throw new NotFoundException("Account not found");
+
+  // Enforce cooldown between resend requests (per-email rate limiting)
+  if (verificationUser.lastOtpResentAt) {
+    const elapsed = Date.now() - verificationUser.lastOtpResentAt.getTime();
+    if (elapsed < OTP_RESEND_COOLDOWN_MS) {
+      const retryAfterSeconds = Math.ceil(
+        (OTP_RESEND_COOLDOWN_MS - elapsed) / 1000
+      );
+      throw new BadRequestException(
+        `Please wait ${retryAfterSeconds} second(s) before requesting a new code.`,
+        ErrorCodeEnum.AUTH_TOO_MANY_ATTEMPTS
+      );
+    }
+  }
 
   const otp = generateOtp();
   verificationUser.set({
     emailVerificationOtpHash: await hashOtp(otp),
     emailVerificationOtpExpiresAt: getOtpExpiresAt(),
+    lastOtpResentAt: new Date(),
   });
 
   await verificationUser.save();

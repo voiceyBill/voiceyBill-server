@@ -11,6 +11,7 @@ export interface UserDocument extends Document {
   emailVerificationOtpExpiresAt?: Date | null;
   passwordResetOtpHash?: string | null;
   passwordResetOtpExpiresAt?: Date | null;
+  lastOtpResentAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
@@ -60,6 +61,11 @@ const userSchema = new Schema<UserDocument>(
       default: null,
     },
     passwordResetOtpExpiresAt: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+    lastOtpResentAt: {
       type: Date,
       select: false,
       default: null,
