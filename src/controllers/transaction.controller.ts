@@ -29,7 +29,7 @@ export const createTransactionController = asyncHandler(
     const transaction = await createTransactionService(body, userId);
 
     return res.status(HTTPSTATUS.CREATED).json({
-      message: "Transacton created successfully",
+      message: "Transaction created successfully",
       transaction,
     });
   }
