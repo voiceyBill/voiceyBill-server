@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.1.0...backend-v1.2.0) (2026-05-22)
+
+
+### Features
+
+* **backend:** Add unified transactional email template design ([c8f3ec9](https://github.com/voiceyBill/voiceyBill-server/commit/c8f3ec960f8afadfa0c3fe4ae1169be6f9e2cb64))
+* **backend:** unify transactional email template design ([6d7596b](https://github.com/voiceyBill/voiceyBill-server/commit/6d7596b3b70f618b63c320017dfeb54a48f4e573))
+
+
+### Bug Fixes
+
+* **auth:** Add per-email rate limiting to resend-otp endpoint ([43205f0](https://github.com/voiceyBill/voiceyBill-server/commit/43205f024a64027d53f03c6dec9f039c336dd5ed))
+* **backend:** remove debug console logs ([52254c8](https://github.com/voiceyBill/voiceyBill-server/commit/52254c81f853b636df221587642219c82c362508))
+* **backend:** Remove debug logs ([67d4776](https://github.com/voiceyBill/voiceyBill-server/commit/67d47765dad26123c81632e2810a6e321ce028f1))
+* Correct typo 'Transacton' → 'Transaction' in API response ([c72b0e1](https://github.com/voiceyBill/voiceyBill-server/commit/c72b0e12b9cada16b54bea7bdee3b03a63dfa1c3))
+* rename transations to transactions in API response ([badb205](https://github.com/voiceyBill/voiceyBill-server/commit/badb205fd9748c60e5a7536dbdd45de014d06e85))
+* Rename transations to transactions in API response ([24abd8f](https://github.com/voiceyBill/voiceyBill-server/commit/24abd8fa697fc26e7661e00b3708b503cfa22fa3))
+* revert accidental package file changes ([4bd6ef1](https://github.com/voiceyBill/voiceyBill-server/commit/4bd6ef17e79e1827eb17a889c0445de66a2bef8e))
+
 ## [1.1.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.0.0...backend-v1.1.0) (2026-05-11)
 
 
