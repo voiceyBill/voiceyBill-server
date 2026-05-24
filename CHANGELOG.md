@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.2.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.1.0...backend-v1.2.0) (2026-05-24)
+
+
+### Features
+
+* **backend:** Add unified transactional email template design ([c8f3ec9](https://github.com/voiceyBill/voiceyBill-server/commit/c8f3ec960f8afadfa0c3fe4ae1169be6f9e2cb64))
+* **backend:** unify transactional email template design ([6d7596b](https://github.com/voiceyBill/voiceyBill-server/commit/6d7596b3b70f618b63c320017dfeb54a48f4e573))
+
+
+### Bug Fixes
+
+* **auth:** Add per-email rate limiting to resend-otp endpoint ([43205f0](https://github.com/voiceyBill/voiceyBill-server/commit/43205f024a64027d53f03c6dec9f039c336dd5ed))
+* **auth:** Prevent overwriting unverified accounts ([e94ecd6](https://github.com/voiceyBill/voiceyBill-server/commit/e94ecd61aa266132a2f3712a4fe6e432b459bb6b))
+* **auth:** Prevent overwriting unverified accounts ([f9ccea0](https://github.com/voiceyBill/voiceyBill-server/commit/f9ccea0f56ff373586adf2d7ca35c954d5f331c8))
+* **backend:** Add ownership check in delete transaction API ([80b0cb9](https://github.com/voiceyBill/voiceyBill-server/commit/80b0cb90c92b6eab7fe6c21e6444e74fb391fd55))
+* **backend:** Add ownership check in delete transaction API ([7e8621f](https://github.com/voiceyBill/voiceyBill-server/commit/7e8621f0101c9defdb40ec9e8517b4151cdd9450))
+* **backend:** Clear recurrence fields when disabling recurring transaction ([36f6852](https://github.com/voiceyBill/voiceyBill-server/commit/36f685218a8d60166f9f4a4f69c80c5ca5e40ac1))
+* **backend:** Clear recurrence fields when disabling recurring transaction ([80f5026](https://github.com/voiceyBill/voiceyBill-server/commit/80f50265c6544ea764bbd4268dce003bf48140f4))
+* **backend:** remove debug console logs ([52254c8](https://github.com/voiceyBill/voiceyBill-server/commit/52254c81f853b636df221587642219c82c362508))
+* **backend:** Remove debug logs ([67d4776](https://github.com/voiceyBill/voiceyBill-server/commit/67d47765dad26123c81632e2810a6e321ce028f1))
+* Correct typo 'Transacton' → 'Transaction' in API response ([c72b0e1](https://github.com/voiceyBill/voiceyBill-server/commit/c72b0e12b9cada16b54bea7bdee3b03a63dfa1c3))
+* Enforce password strength validation in auth validator ([b20395e](https://github.com/voiceyBill/voiceyBill-server/commit/b20395e4003ca326576837aaf865c578f6acfe26))
+* enforce password strength validation in auth validator and auth forms ([ccd7a6b](https://github.com/voiceyBill/voiceyBill-server/commit/ccd7a6b6d6c51ed0ab232a168cdecb8a8cb9d615))
+* rename transations to transactions in API response ([badb205](https://github.com/voiceyBill/voiceyBill-server/commit/badb205fd9748c60e5a7536dbdd45de014d06e85))
+* Rename transations to transactions in API response ([24abd8f](https://github.com/voiceyBill/voiceyBill-server/commit/24abd8fa697fc26e7661e00b3708b503cfa22fa3))
+* revert accidental package file changes ([4bd6ef1](https://github.com/voiceyBill/voiceyBill-server/commit/4bd6ef17e79e1827eb17a889c0445de66a2bef8e))
+
 ## [1.1.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.0.0...backend-v1.1.0) (2026-05-11)
 
 
