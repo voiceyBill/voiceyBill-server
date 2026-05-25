@@ -57,6 +57,6 @@
     "@types/passport": "^1.0.17",
     "@types/passport-jwt": "^4.0.1",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   }
 }
