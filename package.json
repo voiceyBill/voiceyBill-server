@@ -20,7 +20,7 @@
     "@google/genai": "^1.22.0",
     "@google/generative-ai": "^0.21.0",
     "axios": "^1.9.0",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^1.41.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -45,7 +45,7 @@
     "express-rate-limit": "^6.7.0"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.18",
     "@types/dotenv": "^6.1.1",
