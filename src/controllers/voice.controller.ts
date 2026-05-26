@@ -68,7 +68,7 @@ export const processVoiceTransaction = asyncHandler(
         throw new AppError("Invalid audio file format or size", 400);
       }
 
-      console.log("Starting transcription...");
+      
 
       // Set overall timeout for the entire process (45 seconds for Vercel Pro)
       const overallTimeout = new Promise((_, reject) =>
@@ -97,14 +97,14 @@ export const processVoiceTransaction = asyncHandler(
           };
         }
 
-        console.log(`Transcription: ${transcriptionResult.text}`);
+        
 
-        console.log("Starting classification...");
+        
         const transactionData = await geminiService.classifyTransaction(
           transcriptionResult.text
         );
 
-        console.log(`Processing successful: ${transactionData.title}`);
+        
 
         // Return the same format as scanReceiptController
         const result = {

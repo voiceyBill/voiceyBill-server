@@ -39,7 +39,7 @@ export const errorHandler: ErrorRequestHandler = (
   res,
   next
 ): any => {
-  console.log("Error occurred on PATH:", req.path, "Error:", error);
+  
 
   if (error instanceof ZodError) {
     return formatZodError(res, error);

@@ -30,7 +30,7 @@ export const sendReportEmail = async (params: ReportEmailParams) => {
     ${report.insights.join("\n")}
 `;
 
-  console.log(text, "text mail");
+  
 
   return sendEmail({
     to: email,

@@ -47,53 +47,21 @@ const corsOptions = {
     callback(new Error(`Not allowed by CORS: ${origin}`));
   },
   credentials: true,
+  methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Accept",
+    "Origin",
+    "X-Requested-With",
+  ],
+  optionsSuccessStatus: 204,
 };
 
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
 app.use(passport.initialize());
-
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin && allowedOrigins.has(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, Accept, Origin, X-Requested-With",
-    );
-    res.header("Vary", "Origin");
-  }
-
-  next();
-});
-
-app.use(cors(corsOptions));
-app.options("*", (req, res) => {
-  const origin = req.headers.origin;
-
-  if (origin && allowedOrigins.has(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-    );
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, Accept, Origin, X-Requested-With",
-    );
-    res.header("Vary", "Origin");
-  }
-
-  res.sendStatus(204);
-});
 
 app.get(
   "/",

@@ -125,7 +125,7 @@ export const summaryAnalyticsService = async (
     },
   } = current || {};
 
-  console.log(current, "current");
+  
 
   let percentageChange: any = {
     income: 0,
@@ -144,7 +144,7 @@ export const summaryAnalyticsService = async (
     //last 30 days  previous las 30 days,
 
     const period = differenceInDays(to, from) + 1;
-    console.log(`${differenceInDays(to, from)}`, period, "period");
+    
 
     const isYearly = [
       DateRangeEnum.LAST_YEAR,
@@ -154,7 +154,7 @@ export const summaryAnalyticsService = async (
     const prevPeriodFrom = isYearly ? subYears(from, 1) : subDays(from, period);
 
     const prevPeriodTo = isYearly ? subYears(to, 1) : subDays(to, period);
-    console.log(prevPeriodFrom, prevPeriodTo, "Prev date");
+    
 
     const prevPeriodPipeline = [
       {

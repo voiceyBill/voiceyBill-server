@@ -20,6 +20,7 @@ import ReportSettingModel, {
 import { calulateNextReportDate } from "../utils/helper";
 import { signJwtToken } from "../utils/jwt";
 import { ErrorCodeEnum } from "../enums/error-code.enum";
+import { Env } from "../config/env.config";
 import {
   compareOtp,
   generateOtp,
@@ -70,7 +71,7 @@ const issueVerificationOtp = async (
     set: (value: Record<string, unknown>) => void;
     save: (options?: { session?: mongoose.ClientSession }) => Promise<unknown>;
   },
-  session: mongoose.ClientSession
+  session?: mongoose.ClientSession
 ) => {
   const otp = generateOtp();
 
@@ -79,9 +80,25 @@ const issueVerificationOtp = async (
     emailVerificationOtpExpiresAt: getOtpExpiresAt(),
   });
 
-  await user.save({ session });
+  if (session) {
+    await user.save({ session });
+  } else {
+    await user.save();
+  }
 
   return otp;
+};
+
+const isTransactionUnsupportedError = (error: unknown) => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const err = error as { code?: number; message?: string };
+  return (
+    err.code === 20 ||
+    (typeof err.message === "string" && /Transaction numbers are only allowed/.test(err.message))
+  );
 };
 
 export const registerService = async (body: RegisterSchemaType) => {
@@ -98,51 +115,109 @@ export const registerService = async (body: RegisterSchemaType) => {
     | {
         user: ReturnType<(typeof UserModel.prototype)["omitPassword"]>;
         verificationRequired: boolean;
+        emailSent?: boolean;
+        emailSendError?: string;
+        debugOtp?: string;
       }
     | undefined;
 
-  try {
-    await session.withTransaction(async () => {
-      const existingUser = await UserModel.findOne({ email: body.email }).session(
-        session
+  const performRegisterFlow = async (useSession?: mongoose.ClientSession) => {
+    const query = UserModel.findOne({ email: body.email });
+    if (useSession) {
+      query.session(useSession);
+    }
+
+    const existingUser = await query;
+
+    if (existingUser?.isVerified) {
+      throw new ConflictException(
+        "An account with this email already exists. Please sign in instead.",
+        ErrorCodeEnum.AUTH_EMAIL_ALREADY_EXISTS,
       );
+    }
 
-      if (existingUser?.isVerified) {
-        throw new ConflictException(
-          "An account with this email already exists. Please sign in instead.",
-          ErrorCodeEnum.AUTH_EMAIL_ALREADY_EXISTS
-        );
-      }
+    const user = existingUser || new UserModel({ ...body, isVerified: false });
 
-      const user = existingUser || new UserModel({ ...body, isVerified: false });
-
-      if (!existingUser) {
-        await user.save({ session });
+    if (!existingUser) {
+      if (useSession) {
+        await user.save({ session: useSession });
       } else {
-        user.set({
-          name: body.name,
-          password: body.password,
-          isVerified: false,
-        });
-        await user.save({ session });
+        await user.save();
+      }
+    } else {
+      user.set({
+        name: body.name,
+        password: body.password,
+        isVerified: false,
+      });
+
+      if (useSession) {
+        await user.save({ session: useSession });
+      } else {
+        await user.save();
+      }
+    }
+
+    const otp = await issueVerificationOtp(user, useSession);
+
+    verificationEmailPayload = {
+      email: user.email,
+      username: user.name,
+      otp,
+    };
+
+    response = {
+      user: user.omitPassword(),
+      verificationRequired: true,
+    };
+  };
+
+  try {
+    let emailSent = false;
+    let emailSendError: string | undefined;
+    let debugOtp: string | undefined;
+
+    const sendVerificationEmailFlow = async () => {
+      if (!verificationEmailPayload) {
+        return;
       }
 
-      const otp = await issueVerificationOtp(user, session);
+      const emailResult = await sendVerificationOtpEmail(verificationEmailPayload);
+      emailSent = !emailResult.isFallback;
 
-      verificationEmailPayload = {
-        email: user.email,
-        username: user.name,
-        otp,
-      };
+      if (!emailSent) {
+        emailSendError = emailResult.error;
 
-      response = {
-        user: user.omitPassword(),
-        verificationRequired: true,
-      };
-    });
+        if (Env.NODE_ENV === "development") {
+          debugOtp = verificationEmailPayload.otp;
+        } else {
+          throw new Error(emailSendError || "Verification email failed");
+        }
+      }
+    };
 
-    if (verificationEmailPayload) {
-      await sendVerificationOtpEmail(verificationEmailPayload);
+    try {
+      await session.withTransaction(async () => {
+        await performRegisterFlow(session);
+        await sendVerificationEmailFlow();
+      });
+    } catch (error) {
+      if (isTransactionUnsupportedError(error)) {
+        await performRegisterFlow();
+        await sendVerificationEmailFlow();
+      } else {
+        throw error;
+      }
+    }
+
+    if (response) {
+      response.emailSent = emailSent;
+      if (emailSendError) {
+        response.emailSendError = emailSendError;
+      }
+      if (debugOtp) {
+        response.debugOtp = debugOtp;
+      }
     }
 
     return response;

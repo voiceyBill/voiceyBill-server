@@ -13,8 +13,8 @@ export const processReportJob = async () => {
   let processedCount = 0;
   let failedCount = 0;
 
-  //Today july 1, then run report for -> june 1 - 30 
-//Get Last Month because this will run on the first of the month
+  // Today july 1, then run report for -> june 1 - 30
+  // Get Last Month because this will run on the first of the month
   const from = startOfMonth(subMonths(now, 1));
   const to = endOfMonth(subMonths(now, 1));
 
@@ -29,12 +29,10 @@ export const processReportJob = async () => {
       .populate<{ userId: UserDocument }>("userId")
       .cursor();
 
-    console.log("Running report ");
-
     for await (const setting of reportSettingCursor) {
       const user = setting.userId as UserDocument;
+
       if (!user) {
-        console.log(`User not found for setting: ${setting._id}`);
         continue;
       }
 
@@ -43,9 +41,8 @@ export const processReportJob = async () => {
       try {
         const report = await generateReportService(user.id, from, to);
 
-        console.log(report, "resport data");
-
         let emailSent = false;
+
         if (report) {
           try {
             await sendReportEmail({
@@ -62,9 +59,10 @@ export const processReportJob = async () => {
               },
               frequency: setting.frequency!,
             });
+
             emailSent = true;
           } catch (error) {
-            console.log(`Email failed for ${user.id}`);
+            failedCount++;
           }
         }
 
@@ -133,7 +131,9 @@ export const processReportJob = async () => {
 
             await Promise.all([
               ReportModel.bulkWrite(bulkReports, { ordered: false }),
-              ReportSettingModel.bulkWrite(bulkSettings, { ordered: false }),
+              ReportSettingModel.bulkWrite(bulkSettings, {
+                ordered: false,
+              }),
             ]);
           },
           {
@@ -143,15 +143,11 @@ export const processReportJob = async () => {
 
         processedCount++;
       } catch (error) {
-        console.log(`Failed to process report`, error);
         failedCount++;
       } finally {
         await session.endSession();
       }
     }
-
-    console.log(`✅Processed: ${processedCount} report`);
-    console.log(`❌ Failed: ${failedCount} report`);
 
     return {
       success: true,
@@ -159,7 +155,6 @@ export const processReportJob = async () => {
       failedCount,
     };
   } catch (error) {
-    console.error("Error processing reports", error);
     return {
       success: false,
       error: "Report process failed",

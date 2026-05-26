@@ -24,8 +24,12 @@ export const registerController = asyncHandler(
 
     const result = await registerService(body);
 
+    const message = result?.emailSent
+      ? "Verification code sent to your email"
+      : "Registration successful, but sending the verification email failed. Please contact support or retry later.";
+
     return res.status(HTTPSTATUS.CREATED).json({
-      message: "Verification code sent to your email",
+      message,
       data: result,
     });
   }
