@@ -34,9 +34,10 @@ const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
 
 const createDefaultReportSetting = async (
   userId: mongoose.Types.ObjectId,
-  session?: mongoose.ClientSession
+  session?: mongoose.ClientSession,
 ) => {
   const reportQuery = ReportSettingModel.findOne({ userId });
+
   if (session) {
     reportQuery.session(session);
   }
@@ -71,7 +72,7 @@ const issueVerificationOtp = async (
     set: (value: Record<string, unknown>) => void;
     save: (options?: { session?: mongoose.ClientSession }) => Promise<unknown>;
   },
-  session?: mongoose.ClientSession
+  session?: mongoose.ClientSession,
 ) => {
   const otp = generateOtp();
 
@@ -95,9 +96,11 @@ const isTransactionUnsupportedError = (error: unknown) => {
   }
 
   const err = error as { code?: number; message?: string };
+
   return (
     err.code === 20 ||
-    (typeof err.message === "string" && /Transaction numbers are only allowed/.test(err.message))
+    (typeof err.message === "string" &&
+      /Transaction numbers are only allowed/.test(err.message))
   );
 };
 
@@ -111,6 +114,7 @@ export const registerService = async (body: RegisterSchemaType) => {
         otp: string;
       }
     | undefined;
+
   let response:
     | {
         user: ReturnType<(typeof UserModel.prototype)["omitPassword"]>;
@@ -121,8 +125,11 @@ export const registerService = async (body: RegisterSchemaType) => {
       }
     | undefined;
 
-  const performRegisterFlow = async (useSession?: mongoose.ClientSession) => {
+  const performRegisterFlow = async (
+    useSession?: mongoose.ClientSession,
+  ) => {
     const query = UserModel.findOne({ email: body.email });
+
     if (useSession) {
       query.session(useSession);
     }
@@ -136,7 +143,8 @@ export const registerService = async (body: RegisterSchemaType) => {
       );
     }
 
-    const user = existingUser || new UserModel({ ...body, isVerified: false });
+    const user =
+      existingUser || new UserModel({ ...body, isVerified: false });
 
     if (!existingUser) {
       if (useSession) {
@@ -182,7 +190,10 @@ export const registerService = async (body: RegisterSchemaType) => {
         return;
       }
 
-      const emailResult = await sendVerificationOtpEmail(verificationEmailPayload);
+      const emailResult = await sendVerificationOtpEmail(
+        verificationEmailPayload,
+      );
+
       emailSent = !emailResult.isFallback;
 
       if (!emailSent) {
@@ -212,9 +223,11 @@ export const registerService = async (body: RegisterSchemaType) => {
 
     if (response) {
       response.emailSent = emailSent;
+
       if (emailSendError) {
         response.emailSendError = emailSendError;
       }
+
       if (debugOtp) {
         response.debugOtp = debugOtp;
       }
@@ -228,13 +241,17 @@ export const registerService = async (body: RegisterSchemaType) => {
 
 export const loginService = async (body: LoginSchemaType) => {
   const { email, password } = body;
+
   const user = await UserModel.findOne({ email });
-  if (!user) throw new NotFoundException("Email/password not found");
+
+  if (!user) {
+    throw new NotFoundException("Email/password not found");
+  }
 
   if (user.isVerified === false) {
     throw new UnauthorizedException(
       "Account is not verified. Please verify your email first.",
-      ErrorCodeEnum.AUTH_EMAIL_NOT_VERIFIED
+      ErrorCodeEnum.AUTH_EMAIL_NOT_VERIFIED,
     );
   }
 
@@ -248,7 +265,7 @@ export const loginService = async (body: LoginSchemaType) => {
 
   const reportSetting = await ReportSettingModel.findOne(
     { userId: user.id },
-    { _id: 1, frequency: 1, isEnabled: 1 }
+    { _id: 1, frequency: 1, isEnabled: 1 },
   ).lean();
 
   return {
@@ -263,7 +280,10 @@ export const verifyOtpService = async (body: VerifyOtpSchemaType) => {
   const { email, otp } = body;
 
   const user = await UserModel.findOne({ email });
-  if (!user) throw new NotFoundException("Account not found");
+
+  if (!user) {
+    throw new NotFoundException("Account not found");
+  }
 
   if (user.isVerified) {
     return {
@@ -273,13 +293,13 @@ export const verifyOtpService = async (body: VerifyOtpSchemaType) => {
   }
 
   const verificationUser = await UserModel.findOne({ email }).select(
-    "+emailVerificationOtpHash +emailVerificationOtpExpiresAt"
+    "+emailVerificationOtpHash +emailVerificationOtpExpiresAt",
   );
 
   if (!verificationUser?.emailVerificationOtpHash) {
     throw new BadRequestException(
       "Verification code not found. Please request a new code.",
-      ErrorCodeEnum.AUTH_OTP_INVALID
+      ErrorCodeEnum.AUTH_OTP_INVALID,
     );
   }
 
@@ -291,23 +311,24 @@ export const verifyOtpService = async (body: VerifyOtpSchemaType) => {
       emailVerificationOtpHash: null,
       emailVerificationOtpExpiresAt: null,
     });
+
     await verificationUser.save();
 
     throw new UnauthorizedException(
       "Verification code has expired. Please request a new code.",
-      ErrorCodeEnum.AUTH_OTP_EXPIRED
+      ErrorCodeEnum.AUTH_OTP_EXPIRED,
     );
   }
 
   const isOtpValid = await compareOtp(
     otp,
-    verificationUser.emailVerificationOtpHash
+    verificationUser.emailVerificationOtpHash,
   );
 
   if (!isOtpValid) {
     throw new UnauthorizedException(
       "Invalid verification code",
-      ErrorCodeEnum.AUTH_OTP_INVALID
+      ErrorCodeEnum.AUTH_OTP_INVALID,
     );
   }
 
@@ -319,16 +340,19 @@ export const verifyOtpService = async (body: VerifyOtpSchemaType) => {
 
   await verificationUser.save();
 
-  await createDefaultReportSetting(verificationUser._id as mongoose.Types.ObjectId);
+  await createDefaultReportSetting(
+    verificationUser._id as mongoose.Types.ObjectId,
+  );
 
-  // Auto-login: Generate JWT tokens
-  const { token, expiresAt } = signJwtToken({ userId: verificationUser.id });
+  const { token, expiresAt } = signJwtToken({
+    userId: verificationUser.id,
+  });
 
   const reportSetting = await ReportSettingModel.findOne(
     {
       userId: verificationUser.id,
     },
-    { _id: 1, frequency: 1, isEnabled: 1 }
+    { _id: 1, frequency: 1, isEnabled: 1 },
   ).lean();
 
   return {
@@ -344,33 +368,41 @@ export const resendOtpService = async (body: ResendOtpSchemaType) => {
   const { email } = body;
 
   const user = await UserModel.findOne({ email });
-  if (!user) throw new NotFoundException("Account not found");
+
+  if (!user) {
+    throw new NotFoundException("Account not found");
+  }
 
   if (user.isVerified) {
     throw new ConflictException("Account is already verified");
   }
 
   const verificationUser = await UserModel.findOne({ email }).select(
-    "+emailVerificationOtpHash +emailVerificationOtpExpiresAt +lastOtpResentAt"
+    "+emailVerificationOtpHash +emailVerificationOtpExpiresAt +lastOtpResentAt",
   );
 
-  if (!verificationUser) throw new NotFoundException("Account not found");
+  if (!verificationUser) {
+    throw new NotFoundException("Account not found");
+  }
 
-  // Enforce cooldown between resend requests (per-email rate limiting)
   if (verificationUser.lastOtpResentAt) {
-    const elapsed = Date.now() - verificationUser.lastOtpResentAt.getTime();
+    const elapsed =
+      Date.now() - verificationUser.lastOtpResentAt.getTime();
+
     if (elapsed < OTP_RESEND_COOLDOWN_MS) {
       const retryAfterSeconds = Math.ceil(
-        (OTP_RESEND_COOLDOWN_MS - elapsed) / 1000
+        (OTP_RESEND_COOLDOWN_MS - elapsed) / 1000,
       );
+
       throw new BadRequestException(
         `Please wait ${retryAfterSeconds} second(s) before requesting a new code.`,
-        ErrorCodeEnum.AUTH_TOO_MANY_ATTEMPTS
+        ErrorCodeEnum.AUTH_TOO_MANY_ATTEMPTS,
       );
     }
   }
 
   const otp = generateOtp();
+
   verificationUser.set({
     emailVerificationOtpHash: await hashOtp(otp),
     emailVerificationOtpExpiresAt: getOtpExpiresAt(),
@@ -391,11 +423,12 @@ export const resendOtpService = async (body: ResendOtpSchemaType) => {
 };
 
 export const forgotPasswordService = async (
-  body: ForgotPasswordSchemaType
+  body: ForgotPasswordSchemaType,
 ) => {
   const { email } = body;
 
   const user = await UserModel.findOne({ email });
+
   if (!user) {
     return {
       message: "If the email exists, a reset code has been sent",
@@ -403,6 +436,7 @@ export const forgotPasswordService = async (
   }
 
   const otp = generateOtp();
+
   user.set({
     passwordResetOtpHash: await hashOtp(otp),
     passwordResetOtpExpiresAt: getOtpExpiresAt(),
@@ -422,20 +456,22 @@ export const forgotPasswordService = async (
 };
 
 export const resetPasswordService = async (
-  body: ResetPasswordSchemaType
+  body: ResetPasswordSchemaType,
 ) => {
   const { email, otp, password } = body;
 
   const user = await UserModel.findOne({ email }).select(
-    "+passwordResetOtpHash +passwordResetOtpExpiresAt"
+    "+passwordResetOtpHash +passwordResetOtpExpiresAt",
   );
 
-  if (!user) throw new NotFoundException("Account not found");
+  if (!user) {
+    throw new NotFoundException("Account not found");
+  }
 
   if (!user.passwordResetOtpHash) {
     throw new BadRequestException(
       "Reset code not found. Please request a new code.",
-      ErrorCodeEnum.AUTH_OTP_INVALID
+      ErrorCodeEnum.AUTH_OTP_INVALID,
     );
   }
 
@@ -447,20 +483,24 @@ export const resetPasswordService = async (
       passwordResetOtpHash: null,
       passwordResetOtpExpiresAt: null,
     });
+
     await user.save();
 
     throw new UnauthorizedException(
       "Reset code has expired. Please request a new code.",
-      ErrorCodeEnum.AUTH_OTP_EXPIRED
+      ErrorCodeEnum.AUTH_OTP_EXPIRED,
     );
   }
 
-  const isOtpValid = await compareOtp(otp, user.passwordResetOtpHash);
+  const isOtpValid = await compareOtp(
+    otp,
+    user.passwordResetOtpHash,
+  );
 
   if (!isOtpValid) {
     throw new UnauthorizedException(
       "Invalid reset code",
-      ErrorCodeEnum.AUTH_OTP_INVALID
+      ErrorCodeEnum.AUTH_OTP_INVALID,
     );
   }
 

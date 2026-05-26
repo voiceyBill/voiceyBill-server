@@ -1,23 +1,27 @@
 import mongoose from "mongoose";
 import ReportSettingModel from "../models/report-setting.model";
-import ReportModel from "../models/report.model";
+import ReportModel, { ReportStatusEnum } from "../models/report.model";
 import TransactionModel, {
   TransactionTypeEnum,
 } from "../models/transaction.model";
+import UserModel from "../models/user.model";
 import { NotFoundException } from "../utils/app-error";
+import { parseReportPeriod } from "../utils/date";
 import { calulateNextReportDate } from "../utils/helper";
+import { reportInsightPrompt } from "../utils/prompt";
 import { UpdateReportSettingType } from "../validators/report.validator";
 import { convertToDollarUnit } from "../utils/format-currency";
 import { format } from "date-fns";
 import { openai, openAIModel } from "../config/openai.config";
-import { reportInsightPrompt } from "../utils/prompt";
+import { sendReportEmail } from "../mailers/report.mailer";
+import { toReportEmailDTO } from "../dto/report.dto";
 
 export const getAllReportsService = async (
   userId: string,
   pagination: {
     pageSize: number;
     pageNumber: number;
-  }
+  },
 ) => {
   const query: Record<string, any> = { userId };
 
@@ -45,7 +49,7 @@ export const getAllReportsService = async (
 
 export const updateReportSettingService = async (
   userId: string,
-  body: UpdateReportSettingType
+  body: UpdateReportSettingType,
 ) => {
   const { isEnabled } = body;
   let nextReportDate: Date | null = null;
@@ -64,14 +68,12 @@ export const updateReportSettingService = async (
     const now = new Date();
     if (!currentNextReportDate || currentNextReportDate <= now) {
       nextReportDate = calulateNextReportDate(
-        existingReportSetting.lastSentDate
+        existingReportSetting.lastSentDate,
       );
     } else {
       nextReportDate = currentNextReportDate;
     }
   }
-
-  
 
   existingReportSetting.set({
     ...body,
@@ -84,7 +86,7 @@ export const updateReportSettingService = async (
 export const generateReportService = async (
   userId: string,
   fromDate: Date,
-  toDate: Date
+  toDate: Date,
 ) => {
   const results = await TransactionModel.aggregate([
     {
@@ -166,8 +168,6 @@ export const generateReportService = async (
     categories = [],
   } = results[0] || {};
 
-  
-
   const byCategory = categories.reduce(
     (acc: any, { _id, total }: any) => {
       acc[_id] = {
@@ -177,7 +177,7 @@ export const generateReportService = async (
       };
       return acc;
     },
-    {} as Record<string, { amount: number; percentage: number }>
+    {} as Record<string, { amount: number; percentage: number }>,
   );
 
   const availableBalance = totalIncome - totalExpenses;
@@ -193,6 +193,17 @@ export const generateReportService = async (
     categories: byCategory,
     periodLabel: periodLabel,
   });
+
+  await ReportModel.findOneAndUpdate(
+    { userId, period: periodLabel },
+    {
+      userId,
+      period: periodLabel,
+      sentDate: new Date(),
+      status: ReportStatusEnum.SENT,
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
 
   return {
     period: periodLabel,
@@ -259,3 +270,27 @@ function calculateSavingRate(totalIncome: number, totalExpenses: number) {
   const savingRate = ((totalIncome - totalExpenses) / totalIncome) * 100;
   return parseFloat(savingRate.toFixed(2));
 }
+
+export const resendReportService = async (userId: string, reportId: string) => {
+  const savedReport = await ReportModel.findOne({ _id: reportId, userId });
+  if (!savedReport) throw new NotFoundException("Report not found");
+
+  const user = await UserModel.findById(userId);
+  if (!user) throw new NotFoundException("User not found");
+
+  const { fromDate, toDate } = parseReportPeriod(savedReport.period);
+
+  const generatedReport = await generateReportService(userId, fromDate, toDate);
+
+  if (!generatedReport) {
+    throw new NotFoundException("No report data available for this period");
+  }
+ 
+  return sendReportEmail({
+    email: user.email,
+    username: user.name,
+    report: toReportEmailDTO(generatedReport.summary, generatedReport.period),
+    frequency: "Custom",
+  });
+};
+

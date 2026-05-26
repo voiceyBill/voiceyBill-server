@@ -10,9 +10,76 @@ import {
 import { openai, openAIModel } from "../config/openai.config";
 import { receiptPrompt } from "../utils/prompt";
 
+/**
+ * Sanitize and validate pagination inputs to prevent abuse and crashes
+ * @param pageSize - requested page size (can be string, number, or invalid)
+ * @param pageNumber - requested page number (can be string, number, or invalid)
+ * @returns { pageSize: number; pageNumber: number } - safe, validated values
+ */
+const sanitizeAndValidatePagination = (
+  pageSize: unknown,
+  pageNumber: unknown
+): { pageSize: number; pageNumber: number } => {
+  const MAX_PAGE_SIZE = 100;
+  const MAX_PAGE_NUMBER = 1000;
+
+  // convert values
+  const parsedPageSize = Number(pageSize);
+  const parsedPageNumber = Number(pageNumber);
+
+  // validate pageSize
+  if (
+    !Number.isFinite(parsedPageSize) ||
+    !Number.isInteger(parsedPageSize)
+  ) {
+    throw new BadRequestException(
+      "pageSize must be a valid integer"
+    );
+  }
+
+  if (parsedPageSize <= 0) {
+    throw new BadRequestException(
+      "pageSize must be greater than 0"
+    );
+  }
+
+  if (parsedPageSize > MAX_PAGE_SIZE) {
+    throw new BadRequestException(
+      `pageSize cannot exceed ${MAX_PAGE_SIZE}`
+    );
+  }
+
+  // validate pageNumber
+  if (
+    !Number.isFinite(parsedPageNumber) ||
+    !Number.isInteger(parsedPageNumber)
+  ) {
+    throw new BadRequestException(
+      "pageNumber must be a valid integer"
+    );
+  }
+
+  if (parsedPageNumber <= 0) {
+    throw new BadRequestException(
+      "pageNumber must be greater than 0"
+    );
+  }
+
+  if (parsedPageNumber > MAX_PAGE_NUMBER) {
+    throw new BadRequestException(
+      `pageNumber cannot exceed ${MAX_PAGE_NUMBER}`
+    );
+  }
+
+  return {
+    pageSize: parsedPageSize,
+    pageNumber: parsedPageNumber,
+  };
+};
+
 export const createTransactionService = async (
   body: CreateTransactionType,
-  userId: string
+  userId: string,
 ) => {
   let nextRecurringDate: Date | undefined;
   const currentDate = new Date();
@@ -20,7 +87,7 @@ export const createTransactionService = async (
   if (body.isRecurring && body.recurringInterval) {
     const calulatedDate = calculateNextOccurrence(
       body.date,
-      body.recurringInterval
+      body.recurringInterval,
     );
 
     nextRecurringDate =
@@ -51,9 +118,9 @@ export const getAllTransactionService = async (
     recurringStatus?: "RECURRING" | "NON_RECURRING";
   },
   pagination: {
-    pageSize: number;
-    pageNumber: number;
-  }
+    pageSize: unknown;
+    pageNumber: unknown;
+  },
 ) => {
   const { keyword, type, recurringStatus } = filters;
 
@@ -80,10 +147,16 @@ export const getAllTransactionService = async (
     }
   }
 
-  const { pageSize, pageNumber } = pagination;
+  // Sanitize pagination inputs to prevent abuse and invalid queries
+  const { pageSize, pageNumber } = sanitizeAndValidatePagination(
+    pagination.pageSize,
+    pagination.pageNumber
+  );
+
+  // SAFE skip (now guaranteed valid)
   const skip = (pageNumber - 1) * pageSize;
 
-  const [transations, totalCount] = await Promise.all([
+  const [transactions, totalCount] = await Promise.all([
     TransactionModel.find(filterConditions)
       .skip(skip)
       .limit(pageSize)
@@ -94,7 +167,7 @@ export const getAllTransactionService = async (
   const totalPages = Math.ceil(totalCount / pageSize);
 
   return {
-    transations,
+    transactions,
     pagination: {
       pageSize,
       pageNumber,
@@ -107,26 +180,32 @@ export const getAllTransactionService = async (
 
 export const getTransactionByIdService = async (
   userId: string,
-  transactionId: string
+  transactionId: string,
 ) => {
   const transaction = await TransactionModel.findOne({
     _id: transactionId,
     userId,
   });
-  if (!transaction) throw new NotFoundException("Transaction not found");
+
+  if (!transaction) {
+    throw new NotFoundException("Transaction not found");
+  }
 
   return transaction;
 };
 
 export const duplicateTransactionService = async (
   userId: string,
-  transactionId: string
+  transactionId: string,
 ) => {
   const transaction = await TransactionModel.findOne({
     _id: transactionId,
     userId,
   });
-  if (!transaction) throw new NotFoundException("Transaction not found");
+
+  if (!transaction) {
+    throw new NotFoundException("Transaction not found");
+  }
 
   const duplicated = await TransactionModel.create({
     ...transaction.toObject(),
@@ -148,14 +227,16 @@ export const duplicateTransactionService = async (
 export const updateTransactionService = async (
   userId: string,
   transactionId: string,
-  body: UpdateTransactionType
+  body: UpdateTransactionType,
 ) => {
   const existingTransaction = await TransactionModel.findOne({
     _id: transactionId,
     userId,
   });
-  if (!existingTransaction)
+
+  if (!existingTransaction) {
     throw new NotFoundException("Transaction not found");
+  }
 
   const now = new Date();
   const isRecurring = body.isRecurring ?? existingTransaction.isRecurring;
@@ -163,12 +244,21 @@ export const updateTransactionService = async (
   const date =
     body.date !== undefined ? new Date(body.date) : existingTransaction.date;
 
-  const recurringInterval =
-    body.recurringInterval || existingTransaction.recurringInterval;
+  let recurringInterval:
+    | "DAILY"
+    | "WEEKLY"
+    | "MONTHLY"
+    | "YEARLY"
+    | null
+    | undefined =
+    body.recurringInterval ?? existingTransaction.recurringInterval;
 
-  let nextRecurringDate: Date | undefined;
+  let nextRecurringDate: Date | undefined | null = null;
 
-  if (isRecurring && recurringInterval) {
+  if (isRecurring === false) {
+    recurringInterval = null;
+    nextRecurringDate = null;
+  } else if (isRecurring && recurringInterval) {
     const calulatedDate = calculateNextOccurrence(date, recurringInterval);
 
     nextRecurringDate =
@@ -197,28 +287,32 @@ export const updateTransactionService = async (
 
 export const deleteTransactionService = async (
   userId: string,
-  transactionId: string
+  transactionId: string,
 ) => {
-  const deleted = await TransactionModel.findByIdAndDelete({
+  const deleted = await TransactionModel.findOneAndDelete({
     _id: transactionId,
     userId,
   });
-  if (!deleted) throw new NotFoundException("Transaction not found");
+
+  if (!deleted) {
+    throw new NotFoundException("Transaction not found");
+  }
 
   return;
 };
 
 export const bulkDeleteTransactionService = async (
   userId: string,
-  transactionIds: string[]
+  transactionIds: string[],
 ) => {
   const result = await TransactionModel.deleteMany({
     _id: { $in: transactionIds },
     userId,
   });
 
-  if (result.deletedCount === 0)
+  if (result.deletedCount === 0) {
     throw new NotFoundException("No transations found");
+  }
 
   return {
     sucess: true,
@@ -228,7 +322,7 @@ export const bulkDeleteTransactionService = async (
 
 export const bulkTransactionService = async (
   userId: string,
-  transactions: CreateTransactionType[]
+  transactions: CreateTransactionType[],
 ) => {
   try {
     const bulkOps = transactions.map((tx) => ({
@@ -260,12 +354,16 @@ export const bulkTransactionService = async (
 };
 
 export const scanReceiptService = async (
-  file: Express.Multer.File | undefined
+  file: Express.Multer.File | undefined,
 ) => {
-  if (!file) throw new BadRequestException("No file uploaded");
+  if (!file) {
+    throw new BadRequestException("No file uploaded");
+  }
 
   try {
-    if (!file.path) throw new BadRequestException("Failed to upload file");
+    if (!file.path) {
+      throw new BadRequestException("Failed to upload file");
+    }
 
     const result = await openai.chat.completions.create({
       model: openAIModel,
@@ -285,7 +383,9 @@ export const scanReceiptService = async (
 
     const content = result.choices[0]?.message?.content;
 
-    if (!content) return { error: "Could not read receipt content" };
+    if (!content) {
+      return { error: "Could not read receipt content" };
+    }
 
     const data = JSON.parse(content);
 

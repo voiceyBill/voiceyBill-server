@@ -84,3 +84,18 @@ export const getDateRange = (
       return last30Days;
   }
 };
+
+export const parseReportPeriod = (period: string) => {
+  const reportPeriod = period.match(/([A-Za-z]+)\s(\d+)\s-\s(\d+),\s(\d{4})/);
+
+  if (!reportPeriod) {
+    throw new Error("Invalid report period format");
+  }
+
+  const [, month, startDay, endDay, year] = reportPeriod;
+
+  return {
+    fromDate: new Date(`${month} ${startDay}, ${year}`),
+    toDate: new Date(`${month} ${endDay}, ${year}`),
+  };
+};

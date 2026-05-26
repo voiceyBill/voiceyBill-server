@@ -7,7 +7,13 @@ export const emailSchema = z
   .min(1)
   .max(255);
 
-export const passwordSchema = z.string().trim().min(4);
+export const passwordSchema = z
+  .string()
+  .trim()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[A-Z]/, "Must contain uppercase letter")
+  .regex(/[0-9]/, "Must contain a number")
+  .regex(/[^A-Za-z0-9]/, "Must contain special character");
 
 export const registerSchema = z.object({
   name: z.string().trim().min(1).max(255),
@@ -17,12 +23,15 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   email: emailSchema,
-  password: passwordSchema,
+  password: z.string().trim().min(1, "Password is required"),
 });
 
 export const verifyOtpSchema = z.object({
   email: emailSchema,
-  otp: z.string().trim().regex(/^\d{6}$/, "OTP must be a 6-digit code"),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "OTP must be a 6-digit code"),
 });
 
 export const resendOtpSchema = z.object({
@@ -35,7 +44,10 @@ export const forgotPasswordSchema = z.object({
 
 export const resetPasswordSchema = z.object({
   email: emailSchema,
-  otp: z.string().trim().regex(/^\d{6}$/, "OTP must be a 6-digit code"),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "OTP must be a 6-digit code"),
   password: passwordSchema,
 });
 

@@ -4,6 +4,6 @@ export type ReportType = {
   totalExpenses: number;
   availableBalance: number;
   savingsRate: number;
-  topSpendingCategories: Array<{ name: string; percent: number }>;
+  topSpendingCategories: Array<{ name: string; percent: number, amount: number }>;
   insights: string[];
 };
