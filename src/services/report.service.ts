@@ -1,13 +1,12 @@
 import mongoose from "mongoose";
-import ReportSettingModel from "../models/report-setting.model";
+import ReportSettingModel, { ReportFrequencyEnum } from "../models/report-setting.model";
 import ReportModel, { ReportStatusEnum } from "../models/report.model";
 import TransactionModel, {
   TransactionTypeEnum,
 } from "../models/transaction.model";
 import UserModel from "../models/user.model";
 import { NotFoundException } from "../utils/app-error";
-import { parseReportPeriod } from "../utils/date";
-import { calulateNextReportDate } from "../utils/helper";
+import { calculateNextReportDate } from "../utils/helper";
 import { reportInsightPrompt } from "../utils/prompt";
 import { UpdateReportSettingType } from "../validators/report.validator";
 import { convertToDollarUnit } from "../utils/format-currency";
@@ -67,7 +66,7 @@ export const updateReportSettingService = async (
     const currentNextReportDate = existingReportSetting.nextReportDate;
     const now = new Date();
     if (!currentNextReportDate || currentNextReportDate <= now) {
-      nextReportDate = calulateNextReportDate(
+      nextReportDate = calculateNextReportDate(
         existingReportSetting.lastSentDate,
       );
     } else {
@@ -195,11 +194,13 @@ export const generateReportService = async (
   });
 
   await ReportModel.findOneAndUpdate(
-    { userId, period: periodLabel },
+    { userId, startDate: fromDate, endDate: toDate },
     {
       userId,
       period: periodLabel,
       sentDate: new Date(),
+      startDate: fromDate,
+      endDate: toDate,
       status: ReportStatusEnum.SENT,
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
@@ -207,6 +208,8 @@ export const generateReportService = async (
 
   return {
     period: periodLabel,
+    startDate: fromDate,
+    endDate: toDate,
     summary: {
       income: convertToDollarUnit(totalIncome),
       expenses: convertToDollarUnit(totalExpenses),
@@ -275,12 +278,13 @@ export const resendReportService = async (userId: string, reportId: string) => {
   const savedReport = await ReportModel.findOne({ _id: reportId, userId });
   if (!savedReport) throw new NotFoundException("Report not found");
 
-  const user = await UserModel.findById(userId);
+  const user = await UserModel.findById(userId).lean();
   if (!user) throw new NotFoundException("User not found");
 
-  const { fromDate, toDate } = parseReportPeriod(savedReport.period);
-
-  const generatedReport = await generateReportService(userId, fromDate, toDate);
+  const generatedReport = await generateReportService(
+    userId, 
+    savedReport.startDate,
+    savedReport.endDate);
 
   if (!generatedReport) {
     throw new NotFoundException("No report data available for this period");
@@ -290,7 +294,7 @@ export const resendReportService = async (userId: string, reportId: string) => {
     email: user.email,
     username: user.name,
     report: toReportEmailDTO(generatedReport.summary, generatedReport.period),
-    frequency: "Custom",
+    frequency:ReportFrequencyEnum.MONTHLY,
   });
 };
 

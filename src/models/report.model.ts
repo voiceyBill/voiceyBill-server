@@ -11,6 +11,8 @@ export interface ReportDocument extends Document {
   userId: mongoose.Types.ObjectId;
   period: string;
   sentDate: Date;
+  startDate: Date;
+  endDate: Date;
   status: keyof typeof ReportStatusEnum;
   createdAt: Date;
   updatedAt: Date;
@@ -28,6 +30,14 @@ const reportSchema = new mongoose.Schema<ReportDocument>(
       required: true,
     },
     sentDate: {
+      type: Date,
+      required: true,
+    },
+    startDate: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
       type: Date,
       required: true,
     },

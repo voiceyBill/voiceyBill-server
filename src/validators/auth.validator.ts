@@ -51,9 +51,14 @@ export const resetPasswordSchema = z.object({
   password: passwordSchema,
 });
 
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().trim().min(1, "refreshToken is required"),
+});
+
 export type RegisterSchemaType = z.infer<typeof registerSchema>;
 export type LoginSchemaType = z.infer<typeof loginSchema>;
 export type VerifyOtpSchemaType = z.infer<typeof verifyOtpSchema>;
 export type ResendOtpSchemaType = z.infer<typeof resendOtpSchema>;
 export type ForgotPasswordSchemaType = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordSchemaType = z.infer<typeof resetPasswordSchema>;
+export type RefreshTokenSchemaType = z.infer<typeof refreshTokenSchema>;

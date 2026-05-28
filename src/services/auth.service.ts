@@ -17,8 +17,13 @@ import {
 import ReportSettingModel, {
   ReportFrequencyEnum,
 } from "../models/report-setting.model";
-import { calulateNextReportDate } from "../utils/helper";
-import { signJwtToken } from "../utils/jwt";
+import { calculateNextReportDate } from "../utils/helper";
+import {
+  signJwtToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} from "../utils/jwt";
+import jwt from "jsonwebtoken";
 import { ErrorCodeEnum } from "../enums/error-code.enum";
 import { Env } from "../config/env.config";
 import {
@@ -30,7 +35,7 @@ import {
 import { sendVerificationOtpEmail } from "../mailers/verification.mailer";
 import { sendPasswordResetEmail } from "../mailers/password-reset.mailer";
 
-const OTP_RESEND_COOLDOWN_MS = 60 * 1000; // 60 seconds
+const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 
 const createDefaultReportSetting = async (
   userId: mongoose.Types.ObjectId,
@@ -52,7 +57,7 @@ const createDefaultReportSetting = async (
     userId,
     frequency: ReportFrequencyEnum.MONTHLY,
     isEnabled: true,
-    nextReportDate: calulateNextReportDate(),
+    nextReportDate: calculateNextReportDate(),
     lastSentDate: null,
   });
 
@@ -262,6 +267,7 @@ export const loginService = async (body: LoginSchemaType) => {
   }
 
   const { token, expiresAt } = signJwtToken({ userId: user.id });
+  const refreshToken = signRefreshToken({ userId: user.id });
 
   const reportSetting = await ReportSettingModel.findOne(
     { userId: user.id },
@@ -271,6 +277,7 @@ export const loginService = async (body: LoginSchemaType) => {
   return {
     user: user.omitPassword(),
     accessToken: token,
+    refreshToken,
     expiresAt,
     reportSetting,
   };
@@ -348,6 +355,10 @@ export const verifyOtpService = async (body: VerifyOtpSchemaType) => {
     userId: verificationUser.id,
   });
 
+  const refreshToken = signRefreshToken({
+    userId: verificationUser.id,
+  });
+
   const reportSetting = await ReportSettingModel.findOne(
     {
       userId: verificationUser.id,
@@ -358,6 +369,7 @@ export const verifyOtpService = async (body: VerifyOtpSchemaType) => {
   return {
     user: verificationUser.omitPassword(),
     accessToken: token,
+    refreshToken,
     expiresAt,
     reportSetting,
     verified: true,
@@ -514,5 +526,55 @@ export const resetPasswordService = async (
 
   return {
     message: "Password reset successfully",
+  };
+};
+
+export const refreshTokenService = async (refreshToken: string) => {
+  let payload: { userId: string };
+
+  try {
+    payload = verifyRefreshToken(refreshToken);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw new UnauthorizedException(
+        "Refresh token expired. Please sign in again.",
+        ErrorCodeEnum.AUTH_REFRESH_TOKEN_INVALID,
+      );
+    }
+
+    throw new UnauthorizedException(
+      "Invalid refresh token",
+      ErrorCodeEnum.AUTH_REFRESH_TOKEN_INVALID,
+    );
+  }
+
+  const user = await UserModel.findById(payload.userId);
+
+  if (!user || user.isVerified === false) {
+    throw new UnauthorizedException(
+      "Account no longer eligible to refresh",
+      ErrorCodeEnum.AUTH_REFRESH_TOKEN_INVALID,
+    );
+  }
+
+  const { token: accessToken, expiresAt } = signJwtToken({
+    userId: user.id,
+  });
+
+  const nextRefreshToken = signRefreshToken({
+    userId: user.id,
+  });
+
+  const reportSetting = await ReportSettingModel.findOne(
+    { userId: user.id },
+    { _id: 1, frequency: 1, isEnabled: 1 },
+  ).lean();
+
+  return {
+    user: user.omitPassword(),
+    accessToken,
+    refreshToken: nextRefreshToken,
+    expiresAt,
+    reportSetting,
   };
 };
