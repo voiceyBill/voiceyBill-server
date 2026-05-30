@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.2.0...backend-v1.3.0) (2026-05-30)
+
+
+### Features
+
+* **server:** Add secure delete account API with authentication ([75ded9c](https://github.com/voiceyBill/voiceyBill-server/commit/75ded9c79354147e4185fcc8fe48e4cdcf1c9525))
+
 ## [1.2.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.1.0...backend-v1.2.0) (2026-05-29)
 
 
