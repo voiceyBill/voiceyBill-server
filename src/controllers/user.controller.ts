@@ -15,11 +15,9 @@ import {
   registerPushTokenSchema,
   unregisterPushTokenSchema,
   updateUserSchema,
+  deleteAccountSchema,
 } from "../validators/user.validator";
 import { evaluateAndNotifyBudgetImbalance } from "../services/budget-alert.service";
-  deleteAccountSchema,
-  updateUserSchema,
-} from "../validators/user.validator";
 
 export const getCurrentUserController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -93,8 +91,10 @@ export const sendDeleteAccountOtpController = asyncHandler(
     const userId = req.user?._id;
     await sendDeleteAccountOtpService(userId);
 
-    return res.status(HTTPSTATUS.OK).json({ message: "OTP sent to your registered email" });
-  }
+    return res
+      .status(HTTPSTATUS.OK)
+      .json({ message: "OTP sent to your registered email" });
+  },
 );
 
 export const deleteUserController = asyncHandler(
@@ -104,6 +104,8 @@ export const deleteUserController = asyncHandler(
     const userId = req.user?._id;
     await deleteUserService(userId, body);
 
-    return res.status(HTTPSTATUS.OK).json({ message: "User account deleted successfully" });
-  }
+    return res
+      .status(HTTPSTATUS.OK)
+      .json({ message: "User account deleted successfully" });
+  },
 );

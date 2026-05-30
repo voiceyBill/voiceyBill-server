@@ -1,20 +1,28 @@
 import UserModel from "../models/user.model";
 import NotificationTokenModel from "../models/notification-token.model";
-import { NotFoundException, UnauthorizedException } from "../utils/app-error";
 import {
   ChangePasswordType,
   RegisterPushTokenType,
   UnregisterPushTokenType,
+  DeleteAccountType,
   UpdateUserType,
 } from "../validators/user.validator";
 import TransactionModel from "../models/transaction.model";
 import ReportModel from "../models/report.model";
 import ReportSettingModel from "../models/report-setting.model";
 import BudgetModel from "../models/budget.model";
-import { BadRequestException, NotFoundException, UnauthorizedException } from "../utils/app-error";
-import { ChangePasswordType, DeleteAccountType, UpdateUserType } from "../validators/user.validator";
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from "../utils/app-error";
 import { ErrorCodeEnum } from "../enums/error-code.enum";
-import { compareOtp, generateOtp, getOtpExpiresAt, hashOtp } from "../utils/otp";
+import {
+  compareOtp,
+  generateOtp,
+  getOtpExpiresAt,
+  hashOtp,
+} from "../utils/otp";
 import { sendAccountDeletionOtpEmail } from "../mailers/account-deletion.mailer";
 import { resolveCurrencyConversion } from "./currency-conversion.service";
 import { exchangeRateService } from "./exchange-rate.service";
@@ -136,7 +144,10 @@ export const sendDeleteAccountOtpService = async (userId: string) => {
   });
 };
 
-export const deleteUserService = async (userId: string, body: DeleteAccountType) => {
+export const deleteUserService = async (
+  userId: string,
+  body: DeleteAccountType,
+) => {
   const user = await UserModel.findById(userId).select(
     "+emailVerificationOtpHash +emailVerificationOtpExpiresAt",
   );
@@ -246,7 +257,7 @@ async function rebaseTransactionsToCurrency(
 
   if (errors.length > 0) {
     throw new Error(
-      `Currency rebase failed for ${errors.length} transactions: ${errors.join(", ")}`
+      `Currency rebase failed for ${errors.length} transactions: ${errors.join(", ")}`,
     );
   }
 
