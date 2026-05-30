@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   changePasswordController,
   getCurrentUserController,
+  registerPushTokenController,
+  unregisterPushTokenController,
   updateUserController,
 } from "../controllers/user.controller";
 import { upload } from "../config/cloudinary.config";
@@ -12,8 +14,11 @@ userRoutes.get("/current-user", getCurrentUserController);
 userRoutes.put(
   "/update",
   upload.single("profilePicture"),
-  updateUserController
+  updateUserController,
 );
 userRoutes.put("/change-password", changePasswordController);
+
+userRoutes.post("/push-token", registerPushTokenController);
+userRoutes.delete("/push-token", unregisterPushTokenController);
 
 export default userRoutes;

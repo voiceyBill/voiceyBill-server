@@ -28,6 +28,8 @@
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
     "express": "^4.21.2",
+    "express-rate-limit": "^6.7.0",
+    "firebase-admin": "^13.10.0",
     "form-data": "^4.0.4",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
@@ -41,8 +43,7 @@
     "passport-jwt": "^4.0.1",
     "resend": "^4.5.1",
     "uuid": "^11.1.0",
-    "zod": "^3.25.46",
-    "express-rate-limit": "^6.7.0"
+    "zod": "^3.25.46"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

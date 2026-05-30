@@ -25,14 +25,21 @@ const envConfig = () => ({
   RESEND_API_KEY: getEnv("RESEND_API_KEY"),
   RESEND_MAILER_SENDER_REPORTS: getEnv(
     "RESEND_MAILER_SENDER_REPORTS",
-    "reports@voiceybill.com"
+    "reports@voiceybill.com",
   ),
   RESEND_MAILER_SENDER_VERIFY: getEnv(
     "RESEND_MAILER_SENDER_VERIFY",
-    "verify@voiceybill.com"
+    "verify@voiceybill.com",
   ),
 
   FRONTEND_ORIGIN: getEnv("FRONTEND_ORIGIN", "http://localhost:5173"),
+
+  FIREBASE_SERVICE_ACCOUNT_JSON: getEnv("FIREBASE_SERVICE_ACCOUNT_JSON"),
+
+  BUDGET_IMBALANCE_COOLDOWN_MINUTES: getEnv(
+    "BUDGET_IMBALANCE_COOLDOWN_MINUTES",
+    "60",
+  ),
 });
 
 export const Env = envConfig();

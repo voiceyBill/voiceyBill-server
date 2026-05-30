@@ -9,6 +9,7 @@ import {
 } from "../validators/transaction.validator";
 import { openai, openAIModel } from "../config/openai.config";
 import { receiptPrompt } from "../utils/prompt";
+import { evaluateAndNotifyBudgetImbalance } from "./budget-alert.service";
 
 /**
  * Sanitize and validate pagination inputs to prevent abuse and crashes
@@ -18,7 +19,7 @@ import { receiptPrompt } from "../utils/prompt";
  */
 const sanitizeAndValidatePagination = (
   pageSize: unknown,
-  pageNumber: unknown
+  pageNumber: unknown,
 ): { pageSize: number; pageNumber: number } => {
   const MAX_PAGE_SIZE = 100;
   const MAX_PAGE_NUMBER = 1000;
@@ -28,25 +29,16 @@ const sanitizeAndValidatePagination = (
   const parsedPageNumber = Number(pageNumber);
 
   // validate pageSize
-  if (
-    !Number.isFinite(parsedPageSize) ||
-    !Number.isInteger(parsedPageSize)
-  ) {
-    throw new BadRequestException(
-      "pageSize must be a valid integer"
-    );
+  if (!Number.isFinite(parsedPageSize) || !Number.isInteger(parsedPageSize)) {
+    throw new BadRequestException("pageSize must be a valid integer");
   }
 
   if (parsedPageSize <= 0) {
-    throw new BadRequestException(
-      "pageSize must be greater than 0"
-    );
+    throw new BadRequestException("pageSize must be greater than 0");
   }
 
   if (parsedPageSize > MAX_PAGE_SIZE) {
-    throw new BadRequestException(
-      `pageSize cannot exceed ${MAX_PAGE_SIZE}`
-    );
+    throw new BadRequestException(`pageSize cannot exceed ${MAX_PAGE_SIZE}`);
   }
 
   // validate pageNumber
@@ -54,20 +46,16 @@ const sanitizeAndValidatePagination = (
     !Number.isFinite(parsedPageNumber) ||
     !Number.isInteger(parsedPageNumber)
   ) {
-    throw new BadRequestException(
-      "pageNumber must be a valid integer"
-    );
+    throw new BadRequestException("pageNumber must be a valid integer");
   }
 
   if (parsedPageNumber <= 0) {
-    throw new BadRequestException(
-      "pageNumber must be greater than 0"
-    );
+    throw new BadRequestException("pageNumber must be greater than 0");
   }
 
   if (parsedPageNumber > MAX_PAGE_NUMBER) {
     throw new BadRequestException(
-      `pageNumber cannot exceed ${MAX_PAGE_NUMBER}`
+      `pageNumber cannot exceed ${MAX_PAGE_NUMBER}`,
     );
   }
 
@@ -106,6 +94,8 @@ export const createTransactionService = async (
     nextRecurringDate,
     lastProcessed: null,
   });
+
+  await evaluateAndNotifyBudgetImbalance(userId, "transaction.create");
 
   return transaction;
 };
@@ -150,7 +140,7 @@ export const getAllTransactionService = async (
   // Sanitize pagination inputs to prevent abuse and invalid queries
   const { pageSize, pageNumber } = sanitizeAndValidatePagination(
     pagination.pageSize,
-    pagination.pageNumber
+    pagination.pageNumber,
   );
 
   // SAFE skip (now guaranteed valid)
@@ -282,6 +272,8 @@ export const updateTransactionService = async (
 
   await existingTransaction.save();
 
+  await evaluateAndNotifyBudgetImbalance(userId, "transaction.update");
+
   return;
 };
 
@@ -298,6 +290,8 @@ export const deleteTransactionService = async (
     throw new NotFoundException("Transaction not found");
   }
 
+  await evaluateAndNotifyBudgetImbalance(userId, "transaction.delete");
+
   return;
 };
 
@@ -313,6 +307,8 @@ export const bulkDeleteTransactionService = async (
   if (result.deletedCount === 0) {
     throw new NotFoundException("No transations found");
   }
+
+  await evaluateAndNotifyBudgetImbalance(userId, "transaction.bulk-delete");
 
   return {
     sucess: true,
@@ -343,6 +339,8 @@ export const bulkTransactionService = async (
     const result = await TransactionModel.bulkWrite(bulkOps, {
       ordered: true,
     });
+
+    await evaluateAndNotifyBudgetImbalance(userId, "transaction.bulk-insert");
 
     return {
       insertedCount: result.insertedCount,

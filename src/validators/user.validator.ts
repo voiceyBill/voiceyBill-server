@@ -12,3 +12,16 @@ export const changePasswordSchema = z.object({
 });
 
 export type ChangePasswordType = z.infer<typeof changePasswordSchema>;
+
+export const registerPushTokenSchema = z.object({
+  token: z.string().trim().min(1),
+  platform: z.enum(["ANDROID", "IOS"]).default("ANDROID"),
+  deviceId: z.string().trim().min(1).optional(),
+});
+
+export const unregisterPushTokenSchema = z.object({
+  token: z.string().trim().min(1),
+});
+
+export type RegisterPushTokenType = z.infer<typeof registerPushTokenSchema>;
+export type UnregisterPushTokenType = z.infer<typeof unregisterPushTokenSchema>;

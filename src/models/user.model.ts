@@ -1,6 +1,11 @@
 import mongoose, { Document, Schema } from "mongoose";
 import { compareValue, hashValue } from "../utils/bcrypt";
 
+export enum BudgetImbalanceStatusEnum {
+  BALANCED = "BALANCED",
+  IMBALANCED = "IMBALANCED",
+}
+
 export interface UserDocument extends Document {
   name: string;
   email: string;
@@ -12,6 +17,9 @@ export interface UserDocument extends Document {
   passwordResetOtpHash?: string | null;
   passwordResetOtpExpiresAt?: Date | null;
   lastOtpResentAt?: Date | null;
+  budgetImbalanceStatus: keyof typeof BudgetImbalanceStatusEnum;
+  budgetImbalanceNotifiedAt?: Date | null;
+  budgetImbalanceNotificationsEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
@@ -70,10 +78,24 @@ const userSchema = new Schema<UserDocument>(
       select: false,
       default: null,
     },
+
+    budgetImbalanceStatus: {
+      type: String,
+      enum: Object.values(BudgetImbalanceStatusEnum),
+      default: BudgetImbalanceStatusEnum.BALANCED,
+    },
+    budgetImbalanceNotifiedAt: {
+      type: Date,
+      default: null,
+    },
+    budgetImbalanceNotificationsEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.pre("save", async function (next) {

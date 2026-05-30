@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
 import TransactionModel from "../../models/transaction.model";
 import { calculateNextOccurrence } from "../../utils/helper";
+import { evaluateAndNotifyBudgetImbalance } from "../../services/budget-alert.service";
 
 export const processRecurringTransactions = async () => {
   const now = new Date();
   let processedCount = 0;
   let failedCount = 0;
+  const impactedUsers = new Set<string>();
 
   try {
     const transactionCursor = TransactionModel.find({
@@ -18,14 +20,13 @@ export const processRecurringTransactions = async () => {
     for await (const tx of transactionCursor) {
       const nextDate = calculateNextOccurrence(
         tx.nextRecurringDate!,
-        tx.recurringInterval!
+        tx.recurringInterval!,
       );
 
       const session = await mongoose.startSession();
       try {
         await session.withTransaction(
           async () => {
-            // console.log(tx, "transaction");
             await TransactionModel.create(
               [
                 {
@@ -41,7 +42,7 @@ export const processRecurringTransactions = async () => {
                   updatedAt: undefined,
                 },
               ],
-              { session }
+              { session },
             );
 
             await TransactionModel.updateOne(
@@ -52,14 +53,15 @@ export const processRecurringTransactions = async () => {
                   lastProcessed: now,
                 },
               },
-              { session }
+              { session },
             );
           },
           {
             maxCommitTimeMS: 20000,
-          }
+          },
         );
 
+        impactedUsers.add(String(tx.userId));
         processedCount++;
       } catch (error: any) {
         failedCount++;
@@ -67,6 +69,13 @@ export const processRecurringTransactions = async () => {
       } finally {
         await session.endSession();
       }
+    }
+
+    for (const userId of impactedUsers) {
+      await evaluateAndNotifyBudgetImbalance(
+        userId,
+        "transaction.recurring-job",
+      );
     }
 
     console.log(`✅Processed: ${processedCount} transaction`);
