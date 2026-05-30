@@ -16,6 +16,8 @@ export const getReportEmailTemplate = (
     savingsRate,
     topSpendingCategories,
     insights,
+    baseCurrency = "USD",
+    currencySummary,
   } = reportData;
 
   const reportTitle = `${capitalizeFirstLetter(frequency)} Financial Report`;
@@ -28,7 +30,7 @@ export const getReportEmailTemplate = (
           ${cat.name}
         </td>
         <td style="padding:10px 0;font-size:14px;color:#171717;text-align:right;border-bottom:1px solid #f0f0f0;">
-          ${formatCurrency(cat.amount)}
+          ${formatCurrency(cat.amount, baseCurrency)}
         </td>
         <td style="padding:10px 0;font-size:14px;color:#888;text-align:right;border-bottom:1px solid #f0f0f0;">
           ${cat.percent}%
@@ -37,6 +39,28 @@ export const getReportEmailTemplate = (
     `,
     )
     .join("");
+
+  const currencyRows = currencySummary?.length
+    ? `
+    <h4 style="margin:24px 0 10px;">Foreign Currency Summary</h4>
+    <table width="100%">
+      ${currencySummary
+        .map(
+          (item) => `
+        <tr>
+          <td style="padding:8px 0;font-size:14px;color:#555;border-bottom:1px solid #eee;">
+            ${item.currency}
+          </td>
+          <td style="padding:8px 0;font-size:14px;color:#171717;text-align:right;border-bottom:1px solid #eee;">
+            ${item.transactionCount} transaction${item.transactionCount === 1 ? "" : "s"}
+          </td>
+        </tr>
+      `,
+        )
+        .join("")}
+    </table>
+  `
+    : "";
 
   const insightItems = insights
     ?.map(
@@ -114,7 +138,7 @@ export const getReportEmailTemplate = (
               font-weight:700;
               color:#2d6a1a;
             ">
-            ${formatCurrency(totalIncome)}
+            ${formatCurrency(totalIncome, baseCurrency)}
           </p>
         </td>
 
@@ -146,7 +170,7 @@ export const getReportEmailTemplate = (
               font-weight:700;
               color:#c0392b;
             ">
-            ${formatCurrency(totalExpenses)}
+            ${formatCurrency(totalExpenses, baseCurrency)}
           </p>
         </td>
       </tr>
@@ -183,7 +207,7 @@ export const getReportEmailTemplate = (
               font-weight:700;
               color:#171717;
             " >
-            ${formatCurrency(availableBalance)}
+            ${formatCurrency(availableBalance, baseCurrency)}
           </p>
         </td>
 
@@ -286,6 +310,7 @@ export const getReportEmailTemplate = (
           ${categoryRows}
         </table>
       </div>
+      ${currencyRows}
     `: ""}
 
     ${

@@ -11,6 +11,9 @@ import { openai, openAIModel } from "../config/openai.config";
 import { receiptPrompt } from "../utils/prompt";
 import { evaluateAndNotifyBudgetImbalance } from "./budget-alert.service";
 
+import { resolveUserCurrencyConversion } from "./currency-conversion.service";
+import UserModel from "../models/user.model";
+import { resolveCurrencyConversion } from "./currency-conversion.service";
 /**
  * Sanitize and validate pagination inputs to prevent abuse and crashes
  * @param pageSize - requested page size (can be string, number, or invalid)
@@ -84,11 +87,23 @@ export const createTransactionService = async (
         : calulatedDate;
   }
 
+  const currencyFields = await resolveUserCurrencyConversion(
+    userId,
+    Number(body.amount),
+    body.currency,
+  );
+
   const transaction = await TransactionModel.create({
     ...body,
     userId,
     category: body.category,
-    amount: Number(body.amount),
+    amount: currencyFields.amount,
+    originalAmount: currencyFields.originalAmount,
+    originalCurrency: currencyFields.originalCurrency,
+    baseCurrencyAtTime: currencyFields.baseCurrencyAtTime,
+    exchangeRate: currencyFields.exchangeRate,
+    rateSource: currencyFields.rateSource,
+    exchangeRateFetchedAt: currencyFields.exchangeRateFetchedAt,
     isRecurring: body.isRecurring || false,
     recurringInterval: body.recurringInterval || null,
     nextRecurringDate,
@@ -257,13 +272,41 @@ export const updateTransactionService = async (
         : calulatedDate;
   }
 
+  let currencyUpdate: Record<string, any> = {};
+  if (body.amount !== undefined || body.currency !== undefined) {
+    const inputAmount =
+      body.amount !== undefined
+        ? Number(body.amount)
+        : existingTransaction.originalAmount ?? existingTransaction.amount;
+    const inputCurrency =
+      body.currency ||
+      existingTransaction.originalCurrency ||
+      existingTransaction.baseCurrencyAtTime ||
+      undefined;
+    const currencyFields = await resolveUserCurrencyConversion(
+      userId,
+      inputAmount,
+      inputCurrency,
+    );
+
+    currencyUpdate = {
+      amount: currencyFields.amount,
+      originalAmount: currencyFields.originalAmount,
+      originalCurrency: currencyFields.originalCurrency,
+      baseCurrencyAtTime: currencyFields.baseCurrencyAtTime,
+      exchangeRate: currencyFields.exchangeRate,
+      rateSource: currencyFields.rateSource,
+      exchangeRateFetchedAt: currencyFields.exchangeRateFetchedAt,
+    };
+  }
+
   existingTransaction.set({
     ...(body.title && { title: body.title }),
     ...(body.description && { description: body.description }),
     ...(body.category && { category: body.category }),
     ...(body.type && { type: body.type }),
     ...(body.paymentMethod && { paymentMethod: body.paymentMethod }),
-    ...(body.amount !== undefined && { amount: Number(body.amount) }),
+    ...currencyUpdate,
     date,
     isRecurring,
     recurringInterval,
@@ -321,20 +364,40 @@ export const bulkTransactionService = async (
   transactions: CreateTransactionType[],
 ) => {
   try {
-    const bulkOps = transactions.map((tx) => ({
-      insertOne: {
-        document: {
-          ...tx,
-          userId,
-          isRecurring: false,
-          nextRecurringDate: null,
-          recurringInterval: null,
-          lastProcesses: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      },
-    }));
+    const user = await UserModel.findById(userId).select("baseCurrency").lean();
+    const baseCurrency = user?.baseCurrency || "USD";
+    
+    const bulkOps = await Promise.all(
+      transactions.map(async (tx) => {
+        const currencyFields = await resolveCurrencyConversion(
+          baseCurrency,
+          Number(tx.amount),
+          tx.currency,
+        );
+
+        return {
+          insertOne: {
+            document: {
+              ...tx,
+              userId,
+              amount: currencyFields.amount,
+              originalAmount: currencyFields.originalAmount,
+              originalCurrency: currencyFields.originalCurrency,
+              baseCurrencyAtTime: currencyFields.baseCurrencyAtTime,
+              exchangeRate: currencyFields.exchangeRate,
+              rateSource: currencyFields.rateSource,
+              exchangeRateFetchedAt: currencyFields.exchangeRateFetchedAt,
+              isRecurring: false,
+              nextRecurringDate: null,
+              recurringInterval: null,
+              lastProcesses: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          },
+        };
+      }),
+    );
 
     const result = await TransactionModel.bulkWrite(bulkOps, {
       ordered: true,
@@ -360,9 +423,8 @@ export const scanReceiptService = async (
 
   try {
     if (!file.path) {
-      throw new BadRequestException("Failed to upload file");
-    }
-
+    throw new BadRequestException("Failed to upload file");
+    } 
     const result = await openai.chat.completions.create({
       model: openAIModel,
       messages: [
@@ -380,15 +442,45 @@ export const scanReceiptService = async (
     });
 
     const content = result.choices[0]?.message?.content;
-
     if (!content) {
-      return { error: "Could not read receipt content" };
+      throw new BadRequestException("Could not read receipt content");
     }
 
     const data = JSON.parse(content);
 
     if (!data.amount || !data.date) {
-      return { error: "Receipt missing required information" };
+      throw new BadRequestException("Receipt missing required information");
+    }
+
+    const currency =
+      typeof data.currency === "string" &&
+      data.currency.trim().toUpperCase() !== "DEFAULT" &&
+      data.currency.trim().length === 3
+        ? data.currency.trim().toUpperCase()
+        : undefined;
+
+    let category =
+      typeof data.category === "string"
+        ? data.category.toLowerCase().trim()
+        : "other";
+
+      const allowedCategories = [
+      "groceries",
+      "dining & restaurants",
+      "transportation",
+      "utilities",
+      "entertainment",
+      "shopping",
+      "healthcare",
+      "travel",
+      "housing & rent",
+      "income",
+      "investments",
+      "other",
+    ];
+
+    if (!allowedCategories.includes(category)) {
+      category = "other";
     }
 
     return {
@@ -396,12 +488,17 @@ export const scanReceiptService = async (
       amount: data.amount,
       date: data.date,
       description: data.description,
-      category: data.category,
+      category,
       paymentMethod: data.paymentMethod,
       type: data.type,
+      currency,
       receiptUrl: file.path,
     };
   } catch (error) {
-    return { error: "Receipt scanning service unavailable" };
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    console.error("Receipt Scan Error:", error);
+    throw new BadRequestException("Receipt scanning service unavailable");
   }
 };

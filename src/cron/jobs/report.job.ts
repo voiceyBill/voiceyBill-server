@@ -41,7 +41,12 @@ export const processReportJob = async () => {
       const session = await mongoose.startSession();
 
       try {
-        const report = await generateReportService(user.id, from, to);
+        const report = await generateReportService(
+          user.id,
+          from,
+          to,
+          user.baseCurrency || "USD",
+        );
 
         console.log(report, "resport data");
 
@@ -53,12 +58,14 @@ export const processReportJob = async () => {
               username: user.name!,
               report: {
                 period: report.period,
+                baseCurrency: report.baseCurrency,
                 totalIncome: report.summary.income,
                 totalExpenses: report.summary.expenses,
                 availableBalance: report.summary.balance,
                 savingsRate: report.summary.savingsRate,
                 topSpendingCategories: report.summary.topCategories,
                 insights: report.insights,
+                currencySummary: report.currencySummary,
               },
               frequency: setting.frequency!,
             });

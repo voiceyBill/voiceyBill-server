@@ -33,6 +33,12 @@ export interface TransactionDocument extends Document {
   type: keyof typeof TransactionTypeEnum;
   title: string;
   amount: number;
+  originalAmount?: number | null;
+  originalCurrency?: string | null;
+  baseCurrencyAtTime?: string | null;
+  exchangeRate?: number | null;
+  rateSource?: string | null;
+  exchangeRateFetchedAt?: Date | null;
   category: string;
   receiptUrl?: string;
   recurringInterval?: keyof typeof RecurringIntervalEnum;
@@ -68,6 +74,37 @@ const transactionSchema = new Schema<TransactionDocument>(
       required: true,
       set: (value: number) => convertToCents(value),
       get: (value: number) => convertToDollarUnit(value),
+    },
+    originalAmount: {
+      type: Number,
+      default: null,
+      set: (value: number | null) =>
+        value !== null ? convertToCents(value) : null,
+      get: (value: number | null) =>
+        value !== null ? convertToDollarUnit(value) : null,
+    },
+    originalCurrency: {
+      type: String,
+      default: null,
+      uppercase: true,
+    },
+    baseCurrencyAtTime: {
+      type: String,
+      default: null,
+      uppercase: true,
+    },
+    exchangeRate: {
+      type: Number,
+      default: null,
+    },
+    rateSource: {
+      type: String,
+      enum: ["live", "cached", null],
+      default: null,
+    },
+    exchangeRateFetchedAt: {
+      type: Date,
+      default: null,
     },
 
     description: {

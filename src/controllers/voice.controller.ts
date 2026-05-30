@@ -115,6 +115,7 @@ export const processVoiceTransaction = asyncHandler(
           category: transactionData.category,
           paymentMethod: transactionData.paymentMethod,
           type: transactionData.type,
+          currency: transactionData.currency,
           voiceUrl: tmpFilePath, // Temporary file path on server
           transcription: transcriptionResult.text,
           confidence: transactionData.confidence,

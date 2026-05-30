@@ -5,6 +5,8 @@ import {
   registerPushTokenController,
   unregisterPushTokenController,
   updateUserController,
+  deleteUserController,
+  sendDeleteAccountOtpController,
 } from "../controllers/user.controller";
 import { upload } from "../config/cloudinary.config";
 
@@ -17,6 +19,8 @@ userRoutes.put(
   updateUserController,
 );
 userRoutes.put("/change-password", changePasswordController);
+userRoutes.post("/account/otp", sendDeleteAccountOtpController);
+userRoutes.delete("/account", deleteUserController);
 
 userRoutes.post("/push-token", registerPushTokenController);
 userRoutes.delete("/push-token", unregisterPushTokenController);

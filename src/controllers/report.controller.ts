@@ -5,7 +5,7 @@ import {
   generateReportService,
   getAllReportsService,
   updateReportSettingService,
-  resendReportService
+  resendReportService,
 } from "../services/report.service";
 import { updateReportSettingSchema } from "../validators/report.validator";
 
@@ -46,8 +46,14 @@ export const generateReportController = asyncHandler(
     const { from, to } = req.query;
     const fromDate = new Date(from as string);
     const toDate = new Date(to as string);
+    const baseCurrency = req.user?.baseCurrency || "USD";
 
-    const result = await generateReportService(userId, fromDate, toDate);
+    const result = await generateReportService(
+      userId,
+      fromDate,
+      toDate,
+      baseCurrency,
+    );
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Report generated successfully",
@@ -62,7 +68,7 @@ export const resendReportController = asyncHandler(
     const { id } = req.params;
 
     await resendReportService(userId, id);
-    
+
     return res.status(HTTPSTATUS.OK).json({
       message: "Report resend successfully",
     });

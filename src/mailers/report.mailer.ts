@@ -13,6 +13,7 @@ type ReportEmailParams = {
 
 export const sendReportEmail = async (params: ReportEmailParams) => {
   const { email, username, report, frequency } = params;
+  const baseCurrency = report.baseCurrency || "USD";
   const html = getReportEmailTemplate(
     {
       username,
@@ -22,10 +23,15 @@ export const sendReportEmail = async (params: ReportEmailParams) => {
   );
 
   const text = `Your ${frequency} Financial Report (${report.period})
-    Income: ${formatCurrency(report.totalIncome)}
-    Expenses: ${formatCurrency(report.totalExpenses)}
-    Balance: ${formatCurrency(report.availableBalance)}
+    Income: ${formatCurrency(report.totalIncome, baseCurrency)}
+    Expenses: ${formatCurrency(report.totalExpenses, baseCurrency)}
+    Balance: ${formatCurrency(report.availableBalance, baseCurrency)}
     Savings Rate: ${report.savingsRate.toFixed(2)}%
+    ${report.currencySummary?.length
+      ? `Foreign Currency Transactions: ${report.currencySummary
+          .map((item) => `${item.currency}: ${item.transactionCount}`)
+          .join(", ")}`
+      : ""}
 
     ${report.insights.join("\n")}
 `;

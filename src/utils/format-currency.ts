@@ -9,9 +9,9 @@ export function convertToDollarUnit(amount: number) {
   return amount / 100;
 }
 
-export function formatCurrency(amount: number) {
+export function formatCurrency(amount: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency,
   }).format(amount);
 }
