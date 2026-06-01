@@ -17,6 +17,7 @@ import { initializeCrons } from "./cron";
 import reportRoutes from "./routes/report.route";
 import analyticsRoutes from "./routes/analytics.route";
 import voiceRoutes from "./routes/voice.route";
+import categoryRoutes from "./routes/category.route";
 
 const app = express();
 const BASE_PATH = Env.BASE_PATH;
@@ -137,6 +138,7 @@ app.use(`${BASE_PATH}/transaction`, ensureDatabaseConnection, passportAuthentica
 app.use(`${BASE_PATH}/report`, ensureDatabaseConnection, passportAuthenticateJwt, reportRoutes);
 app.use(`${BASE_PATH}/analytics`, ensureDatabaseConnection, passportAuthenticateJwt, analyticsRoutes);
 app.use(`${BASE_PATH}/voice`, ensureDatabaseConnection, passportAuthenticateJwt, voiceRoutes);
+app.use(`${BASE_PATH}/category`, ensureDatabaseConnection, passportAuthenticateJwt, categoryRoutes);
 
 // Catch-all route for 404 errors
 app.use((req: Request, res: Response) => {
