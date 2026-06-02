@@ -83,12 +83,19 @@ export class ExchangeRateService {
     );
   }
 
-  async getSupportedCurrencies(): Promise<Record<string, string>> {
+ async getSupportedCurrencies(): Promise<Record<string, string>> {
     try {
       const response = await axios.get(`${PROVIDER_BASE_URL}/currencies`, {
         timeout: 5000,
       });
-      return response.data;
+      const providerCurrencies = response.data;
+      const merged = { ...providerCurrencies };
+      for (const code of FALLBACK_SUPPORTED_CURRENCIES) {
+        if (!merged[code]) {
+          merged[code] = code;
+        }
+      }
+      return merged;
     } catch (error: any) {
       console.warn(
         "Failed to fetch currencies from provider, using fallback:",
