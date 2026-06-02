@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.2.0...backend-v1.3.0) (2026-06-02)
+
+
+### Features
+
+* add budget tracking feature to mobile app ([bf76c59](https://github.com/voiceyBill/voiceyBill-server/commit/bf76c59995639fc3258814a55ec8bbbffdbf9052))
+* Add budget tracking feature to mobile app ([d7e9ad1](https://github.com/voiceyBill/voiceyBill-server/commit/d7e9ad1997ee268ee80f14795da9e02a770f3e97))
+* **server:** Add secure delete account API with authentication ([75ded9c](https://github.com/voiceyBill/voiceyBill-server/commit/75ded9c79354147e4185fcc8fe48e4cdcf1c9525))
+
+
+### Bug Fixes
+
+* **auth:** Add proper password error message ([b242660](https://github.com/voiceyBill/voiceyBill-server/commit/b242660419dab45ed6c2a70beb5c0ba1885388f4))
+* **auth:** Enforce registration password rules during password change ([37dc9b7](https://github.com/voiceyBill/voiceyBill-server/commit/37dc9b7bc0d507d7b428c6e432c5bb8a1d718279))
+* **auth:** Enforce registration password rules during password change ([936d73b](https://github.com/voiceyBill/voiceyBill-server/commit/936d73b960dbb884ee1e6998971e2ed0c9e67235))
+
 ## [1.2.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.1.0...backend-v1.2.0) (2026-05-29)
 
 
