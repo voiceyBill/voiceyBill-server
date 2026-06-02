@@ -26,6 +26,7 @@ Analyze the transcribed text and extract transaction details matching this exact
 {
   "title": "string",          // Brief description of the transaction (in English)
   "amount": number,           // Total amount (positive number)
+  "currency": "string",       // ISO 4217 currency code detected from speech. If no currency is mentioned, use "DEFAULT"
   "date": "ISO date string",  // Transaction date in YYYY-MM-DD format (default to today if not specified)
   "description": "string",    // Additional details from the transcription
   "category": "string",       // One of: ${voiceConfig.categories.join(", ")}
@@ -41,7 +42,7 @@ Rules:
 4. Type should be "EXPENSE" for spending, "INCOME" for earnings
 5. Payment method should be inferred from context or default to "CASH"
 6. Confidence should reflect how certain you are about the classification
-7. Accept any currency — extract just the numeric amount
+7. Detect currency from speech: "dollars" -> USD, "euros" -> EUR, "pounds" -> GBP, "rupees"/"rupaye" -> INR, "yen" -> JPY. If no currency is mentioned, set currency to "DEFAULT"
 
 Output only valid JSON. Do not include any explanation or markdown.`;
   }
@@ -106,6 +107,13 @@ Output only valid JSON. Do not include any explanation or markdown.`;
     data.confidence = isNaN(confidence) || confidence < 0 || confidence > 1 ? 0.8 : confidence;
 
     if (!data.description) data.description = undefined;
+    if (data.currency && typeof data.currency === "string") {
+      const cleaned = data.currency.trim().toUpperCase();
+      data.currency =
+        cleaned === "DEFAULT" || cleaned.length !== 3 ? undefined : cleaned;
+    } else {
+      data.currency = undefined;
+    }
 
     return data as TransactionData;
   }

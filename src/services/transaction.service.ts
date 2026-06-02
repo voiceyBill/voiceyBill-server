@@ -9,6 +9,75 @@ import {
 } from "../validators/transaction.validator";
 import { openai, openAIModel } from "../config/openai.config";
 import { receiptPrompt } from "../utils/prompt";
+import { resolveUserCurrencyConversion } from "./currency-conversion.service";
+import UserModel from "../models/user.model";
+import { resolveCurrencyConversion } from "./currency-conversion.service";
+/**
+ * Sanitize and validate pagination inputs to prevent abuse and crashes
+ * @param pageSize - requested page size (can be string, number, or invalid)
+ * @param pageNumber - requested page number (can be string, number, or invalid)
+ * @returns { pageSize: number; pageNumber: number } - safe, validated values
+ */
+const sanitizeAndValidatePagination = (
+  pageSize: unknown,
+  pageNumber: unknown
+): { pageSize: number; pageNumber: number } => {
+  const MAX_PAGE_SIZE = 100;
+  const MAX_PAGE_NUMBER = 1000;
+
+  // convert values
+  const parsedPageSize = Number(pageSize);
+  const parsedPageNumber = Number(pageNumber);
+
+  // validate pageSize
+  if (
+    !Number.isFinite(parsedPageSize) ||
+    !Number.isInteger(parsedPageSize)
+  ) {
+    throw new BadRequestException(
+      "pageSize must be a valid integer"
+    );
+  }
+
+  if (parsedPageSize <= 0) {
+    throw new BadRequestException(
+      "pageSize must be greater than 0"
+    );
+  }
+
+  if (parsedPageSize > MAX_PAGE_SIZE) {
+    throw new BadRequestException(
+      `pageSize cannot exceed ${MAX_PAGE_SIZE}`
+    );
+  }
+
+  // validate pageNumber
+  if (
+    !Number.isFinite(parsedPageNumber) ||
+    !Number.isInteger(parsedPageNumber)
+  ) {
+    throw new BadRequestException(
+      "pageNumber must be a valid integer"
+    );
+  }
+
+  if (parsedPageNumber <= 0) {
+    throw new BadRequestException(
+      "pageNumber must be greater than 0"
+    );
+  }
+
+  if (parsedPageNumber > MAX_PAGE_NUMBER) {
+    throw new BadRequestException(
+      `pageNumber cannot exceed ${MAX_PAGE_NUMBER}`
+    );
+  }
+
+  return {
+    pageSize: parsedPageSize,
+    pageNumber: parsedPageNumber,
+  };
+};
 
 export const createTransactionService = async (
   body: CreateTransactionType,
@@ -29,11 +98,23 @@ export const createTransactionService = async (
         : calulatedDate;
   }
 
+  const currencyFields = await resolveUserCurrencyConversion(
+    userId,
+    Number(body.amount),
+    body.currency,
+  );
+
   const transaction = await TransactionModel.create({
     ...body,
     userId,
     category: body.category,
-    amount: Number(body.amount),
+    amount: currencyFields.amount,
+    originalAmount: currencyFields.originalAmount,
+    originalCurrency: currencyFields.originalCurrency,
+    baseCurrencyAtTime: currencyFields.baseCurrencyAtTime,
+    exchangeRate: currencyFields.exchangeRate,
+    rateSource: currencyFields.rateSource,
+    exchangeRateFetchedAt: currencyFields.exchangeRateFetchedAt,
     isRecurring: body.isRecurring || false,
     recurringInterval: body.recurringInterval || null,
     nextRecurringDate,
@@ -51,8 +132,8 @@ export const getAllTransactionService = async (
     recurringStatus?: "RECURRING" | "NON_RECURRING";
   },
   pagination: {
-    pageSize: number;
-    pageNumber: number;
+    pageSize: unknown;
+    pageNumber: unknown;
   },
 ) => {
   const { keyword, type, recurringStatus } = filters;
@@ -80,7 +161,13 @@ export const getAllTransactionService = async (
     }
   }
 
-  const { pageSize, pageNumber } = pagination;
+  // Sanitize pagination inputs to prevent abuse and invalid queries
+  const { pageSize, pageNumber } = sanitizeAndValidatePagination(
+    pagination.pageSize,
+    pagination.pageNumber
+  );
+
+  // SAFE skip (now guaranteed valid)
   const skip = (pageNumber - 1) * pageSize;
 
   const [transactions, totalCount] = await Promise.all([
@@ -113,7 +200,10 @@ export const getTransactionByIdService = async (
     _id: transactionId,
     userId,
   });
-  if (!transaction) throw new NotFoundException("Transaction not found");
+
+  if (!transaction) {
+    throw new NotFoundException("Transaction not found");
+  }
 
   return transaction;
 };
@@ -126,7 +216,10 @@ export const duplicateTransactionService = async (
     _id: transactionId,
     userId,
   });
-  if (!transaction) throw new NotFoundException("Transaction not found");
+
+  if (!transaction) {
+    throw new NotFoundException("Transaction not found");
+  }
 
   const duplicated = await TransactionModel.create({
     ...transaction.toObject(),
@@ -154,8 +247,10 @@ export const updateTransactionService = async (
     _id: transactionId,
     userId,
   });
-  if (!existingTransaction)
+
+  if (!existingTransaction) {
     throw new NotFoundException("Transaction not found");
+  }
 
   const now = new Date();
   const isRecurring = body.isRecurring ?? existingTransaction.isRecurring;
@@ -171,6 +266,7 @@ export const updateTransactionService = async (
     | null
     | undefined =
     body.recurringInterval ?? existingTransaction.recurringInterval;
+
   let nextRecurringDate: Date | undefined | null = null;
 
   if (isRecurring === false) {
@@ -185,13 +281,41 @@ export const updateTransactionService = async (
         : calulatedDate;
   }
 
+  let currencyUpdate: Record<string, any> = {};
+  if (body.amount !== undefined || body.currency !== undefined) {
+    const inputAmount =
+      body.amount !== undefined
+        ? Number(body.amount)
+        : existingTransaction.originalAmount ?? existingTransaction.amount;
+    const inputCurrency =
+      body.currency ||
+      existingTransaction.originalCurrency ||
+      existingTransaction.baseCurrencyAtTime ||
+      undefined;
+    const currencyFields = await resolveUserCurrencyConversion(
+      userId,
+      inputAmount,
+      inputCurrency,
+    );
+
+    currencyUpdate = {
+      amount: currencyFields.amount,
+      originalAmount: currencyFields.originalAmount,
+      originalCurrency: currencyFields.originalCurrency,
+      baseCurrencyAtTime: currencyFields.baseCurrencyAtTime,
+      exchangeRate: currencyFields.exchangeRate,
+      rateSource: currencyFields.rateSource,
+      exchangeRateFetchedAt: currencyFields.exchangeRateFetchedAt,
+    };
+  }
+
   existingTransaction.set({
     ...(body.title && { title: body.title }),
     ...(body.description && { description: body.description }),
     ...(body.category && { category: body.category }),
     ...(body.type && { type: body.type }),
     ...(body.paymentMethod && { paymentMethod: body.paymentMethod }),
-    ...(body.amount !== undefined && { amount: Number(body.amount) }),
+    ...currencyUpdate,
     date,
     isRecurring,
     recurringInterval,
@@ -211,7 +335,10 @@ export const deleteTransactionService = async (
     _id: transactionId,
     userId,
   });
-  if (!deleted) throw new NotFoundException("Transaction not found");
+
+  if (!deleted) {
+    throw new NotFoundException("Transaction not found");
+  }
 
   return;
 };
@@ -225,8 +352,9 @@ export const bulkDeleteTransactionService = async (
     userId,
   });
 
-  if (result.deletedCount === 0)
+  if (result.deletedCount === 0) {
     throw new NotFoundException("No transations found");
+  }
 
   return {
     sucess: true,
@@ -239,20 +367,40 @@ export const bulkTransactionService = async (
   transactions: CreateTransactionType[],
 ) => {
   try {
-    const bulkOps = transactions.map((tx) => ({
-      insertOne: {
-        document: {
-          ...tx,
-          userId,
-          isRecurring: false,
-          nextRecurringDate: null,
-          recurringInterval: null,
-          lastProcesses: null,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      },
-    }));
+    const user = await UserModel.findById(userId).select("baseCurrency").lean();
+    const baseCurrency = user?.baseCurrency || "USD";
+    
+    const bulkOps = await Promise.all(
+      transactions.map(async (tx) => {
+        const currencyFields = await resolveCurrencyConversion(
+          baseCurrency,
+          Number(tx.amount),
+          tx.currency,
+        );
+
+        return {
+          insertOne: {
+            document: {
+              ...tx,
+              userId,
+              amount: currencyFields.amount,
+              originalAmount: currencyFields.originalAmount,
+              originalCurrency: currencyFields.originalCurrency,
+              baseCurrencyAtTime: currencyFields.baseCurrencyAtTime,
+              exchangeRate: currencyFields.exchangeRate,
+              rateSource: currencyFields.rateSource,
+              exchangeRateFetchedAt: currencyFields.exchangeRateFetchedAt,
+              isRecurring: false,
+              nextRecurringDate: null,
+              recurringInterval: null,
+              lastProcesses: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          },
+        };
+      }),
+    );
 
     const result = await TransactionModel.bulkWrite(bulkOps, {
       ordered: true,
@@ -270,11 +418,14 @@ export const bulkTransactionService = async (
 export const scanReceiptService = async (
   file: Express.Multer.File | undefined,
 ) => {
-  if (!file) throw new BadRequestException("No file uploaded");
+  if (!file) {
+    throw new BadRequestException("No file uploaded");
+  }
 
   try {
-    if (!file.path) throw new BadRequestException("Failed to upload file");
-
+    if (!file.path) {
+    throw new BadRequestException("Failed to upload file");
+    } 
     const result = await openai.chat.completions.create({
       model: openAIModel,
       messages: [
@@ -292,13 +443,45 @@ export const scanReceiptService = async (
     });
 
     const content = result.choices[0]?.message?.content;
-
-    if (!content) return { error: "Could not read receipt content" };
+    if (!content) {
+      throw new BadRequestException("Could not read receipt content");
+    }
 
     const data = JSON.parse(content);
 
     if (!data.amount || !data.date) {
-      return { error: "Receipt missing required information" };
+      throw new BadRequestException("Receipt missing required information");
+    }
+
+    const currency =
+      typeof data.currency === "string" &&
+      data.currency.trim().toUpperCase() !== "DEFAULT" &&
+      data.currency.trim().length === 3
+        ? data.currency.trim().toUpperCase()
+        : undefined;
+
+    let category =
+      typeof data.category === "string"
+        ? data.category.toLowerCase().trim()
+        : "other";
+
+      const allowedCategories = [
+      "groceries",
+      "dining & restaurants",
+      "transportation",
+      "utilities",
+      "entertainment",
+      "shopping",
+      "healthcare",
+      "travel",
+      "housing & rent",
+      "income",
+      "investments",
+      "other",
+    ];
+
+    if (!allowedCategories.includes(category)) {
+      category = "other";
     }
 
     return {
@@ -306,12 +489,17 @@ export const scanReceiptService = async (
       amount: data.amount,
       date: data.date,
       description: data.description,
-      category: data.category,
+      category,
       paymentMethod: data.paymentMethod,
       type: data.type,
+      currency,
       receiptUrl: file.path,
     };
   } catch (error) {
-    return { error: "Receipt scanning service unavailable" };
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    console.error("Receipt Scan Error:", error);
+    throw new BadRequestException("Receipt scanning service unavailable");
   }
 };

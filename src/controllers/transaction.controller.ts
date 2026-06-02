@@ -48,10 +48,10 @@ export const getAllTransactionController = asyncHandler(
         | undefined,
     };
 
-    const pagination = {
-      pageSize: parseInt(req.query.pageSize as string) || 20,
-      pageNumber: parseInt(req.query.pageNumber as string) || 1,
-    };
+  const pagination = {
+    pageSize: req.query.pageSize,
+    pageNumber: req.query.pageNumber,
+  };
 
     const result = await getAllTransactionService(userId, filters, pagination);
 

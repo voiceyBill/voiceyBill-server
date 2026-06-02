@@ -1,10 +1,14 @@
-import jwt, { JwtPayload, SignOptions } from "jsonwebtoken";
+import jwt, { JwtPayload, SignOptions, VerifyOptions } from "jsonwebtoken";
 import { Env } from "../config/env.config";
 
 type TimeUnit = "s" | "m" | "h" | "d" | "w" | "y";
 type TimeString = `${number}${TimeUnit}`;
 
 export type AccessTokenPayload = {
+  userId: string;
+};
+
+export type RefreshTokenPayload = {
   userId: string;
 };
 
@@ -20,6 +24,11 @@ const defaults: SignOptions = {
 const accessTokenSignOptions: SignOptsAndSecret = {
   expiresIn: Env.JWT_EXPIRES_IN as TimeString,
   secret: Env.JWT_SECRET,
+};
+
+const refreshTokenSignOptions: SignOptsAndSecret = {
+  expiresIn: Env.JWT_REFRESH_EXPIRES_IN as TimeString,
+  secret: Env.JWT_REFRESH_SECRET,
 };
 
 export const signJwtToken = (
@@ -43,4 +52,28 @@ export const signJwtToken = (
     token,
     expiresAt,
   };
+};
+
+export const signRefreshToken = (payload: RefreshTokenPayload) => {
+  const { secret, ...opts } = refreshTokenSignOptions;
+  return jwt.sign(payload, secret, { ...defaults, ...opts });
+};
+
+const refreshVerifyOptions: VerifyOptions = {
+  audience: ["user"],
+  algorithms: ["HS256"],
+};
+
+export const verifyRefreshToken = (token: string): RefreshTokenPayload => {
+  const decoded = jwt.verify(
+    token,
+    Env.JWT_REFRESH_SECRET,
+    refreshVerifyOptions
+  ) as JwtPayload & RefreshTokenPayload;
+
+  if (!decoded?.userId) {
+    throw new jwt.JsonWebTokenError("Missing userId in refresh token payload");
+  }
+
+  return { userId: decoded.userId };
 };

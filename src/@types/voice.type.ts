@@ -15,6 +15,7 @@ export enum PaymentMethod {
 export interface TransactionData {
   title: string;
   amount: number;
+  currency?: string;
   date: string;
   description?: string;
   category: string;
@@ -35,6 +36,7 @@ export interface VoiceProcessingResponse {
   data: {
     title?: string;
     amount?: number;
+    currency?: string;
     date?: string;
     description?: string;
     category?: string;

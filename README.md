@@ -5,6 +5,7 @@
 [![Release](https://github.com/voiceyBill/voiceyBill-server/actions/workflows/release.yml/badge.svg)](https://github.com/voiceyBill/voiceyBill-server/actions/workflows/release.yml)
 
 REST API powering transaction management, voice-to-transaction AI processing, receipt scanning, report scheduling, and user auth for VoiceyBill.
+It also supports multi-currency transactions by storing original amounts, converted base-currency amounts and exchange-rate metadata.
 
 ## Local development
 
@@ -31,6 +32,7 @@ npm run dev     # ts-node-dev with hot reload
 ```
 
 You should see:
+
 ```
 Connected to MongoDB
 🚀 Server is running on http://localhost:8000
@@ -60,11 +62,12 @@ npm run seed:wipe
 - **Cloudinary** for file/image storage
 - **Resend** for transactional email (report delivery)
 - **node-cron** for scheduled report jobs
+- **Frankfurter API** with local cache fallback for exchange rates
 
 ## Prerequisites
 
 - **Node.js 20.0.0 or later** (`node --version` to check)
-- **npm 10.0.0 or later** (`npm --version` to check)  
+- **npm 10.0.0 or later** (`npm --version` to check)
 - **MongoDB instance** (local Docker container or MongoDB Atlas cloud)
 - **Docker Desktop** (optional but recommended for local MongoDB)
 
@@ -82,6 +85,7 @@ docker --version    # should be 20.0+ (optional, only needed for Docker MongoDB)
 ```
 
 **If versions are too old:**
+
 - Download Node.js from https://nodejs.org/ (choose LTS v20+)
 - Restart your terminal and verify again
 
@@ -94,19 +98,19 @@ npm ci
 
 ### Environment variables
 
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (default `8000`) |
-| `MONGO_URI` | MongoDB connection string |
-| `MONGO_DB_NAME` | Database name used by the backend (default `voiceybill`) |
-| `JWT_SECRET` | Secret for signing JWT tokens |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
-| `GEMINI_API_KEY` | Google Generative AI key (voice processing) |
-| `OPENAI_API_KEY` | OpenAI key (receipt scanning) |
-| `RESEND_API_KEY` | Resend API key (report emails) |
-| `FRONTEND_ORIGIN` | Allowed CORS origin for the web client |
+| Variable                | Description                                              |
+| ----------------------- | -------------------------------------------------------- |
+| `PORT`                  | Server port (default `8000`)                             |
+| `MONGO_URI`             | MongoDB connection string                                |
+| `MONGO_DB_NAME`         | Database name used by the backend (default `voiceybill`) |
+| `JWT_SECRET`            | Secret for signing JWT tokens                            |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name                                    |
+| `CLOUDINARY_API_KEY`    | Cloudinary API key                                       |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret                                    |
+| `GEMINI_API_KEY`        | Google Generative AI key (voice processing)              |
+| `OPENAI_API_KEY`        | OpenAI key (receipt scanning)                            |
+| `RESEND_API_KEY`        | Resend API key (report emails)                           |
+| `FRONTEND_ORIGIN`       | Allowed CORS origin for the web client                   |
 
 ## Development
 
@@ -126,11 +130,23 @@ If you use Docker, set `MONGO_URI=mongodb://localhost:27017` in `.env` and keep 
 
 - **Auth** — register, login, JWT refresh
 - **Transactions** — CRUD, bulk delete, CSV import, duplicate, recurring intervals
+- **Currency** — supported currency list, exchange rates, cached fallback rates
 - **Analytics** — dashboard stats, income/expense trends, category breakdown
 - **Voice** — upload audio, AI transcription → structured transaction data
 - **Receipt scan** — upload receipt image, AI extraction → transaction fields
 - **Reports** — generate reports, schedule recurring email delivery
 - **User** — profile update, avatar upload
+
+## Multi-currency support
+
+- Users can set a `baseCurrency` on their profile.
+- Transactions may include a `currency` code when created or updated.
+- Foreign-currency transactions store the original amount/currency plus the converted base-currency amount in `amount`.
+- Exchange rate, rate source (`live` or `cached`) and fetch timestamp are stored with converted transactions.
+- Changing a user's base currency rebases existing transactions so dashboard totals and reports remain numerically correct.
+- Currency endpoints:
+  - `GET /api/currency/supported`
+  - `GET /api/currency/rate?from=EUR&to=INR`
 
 ## Contributing
 
@@ -147,12 +163,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ### "Cannot find module" or "npm ERR!"
 
 1. Clear and reinstall dependencies:
+
    ```bash
    rm -rf node_modules package-lock.json
    npm ci
    ```
 
 2. Check Node version meets requirement (20+):
+
    ```bash
    node --version
    npm --version
@@ -163,11 +181,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ### MongoDB connection error ("connect ECONNREFUSED")
 
 1. If using Docker, verify the container is running:
+
    ```bash
    docker ps | grep mongo
    ```
 
 2. If not running, start it:
+
    ```bash
    docker compose up -d
    ```
@@ -180,11 +200,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ### Port 8000 already in use
 
 1. Change the port in `.env`:
+
    ```bash
    PORT=3001
    ```
 
 2. Or kill the process using port 8000 (be careful):
+
    ```bash
    # Windows
    netstat -ano | findstr :8000
@@ -198,12 +220,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ### "ERR: Seeding failed" or seed data won't populate
 
 1. Verify the database is connected:
+
    ```bash
    npm run dev
    # should show "Connected to MongoDB"
    ```
 
 2. Check MongoDB is using the correct database name:
+
    ```bash
    # Should be 'voiceybill' by default
    echo $MONGO_DB_NAME
@@ -218,6 +242,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ### TypeScript build errors
 
 1. Check for type errors:
+
    ```bash
    npm run build
    ```
@@ -227,11 +252,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ### Env variables not being read
 
 1. Verify `.env` file exists and has the required variables:
+
    ```bash
    cat .env | grep MONGO_URI
    ```
 
 2. Restart the server:
+
    ```bash
    npm run dev
    ```

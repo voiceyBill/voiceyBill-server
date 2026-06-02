@@ -2,10 +2,13 @@ import { ReportType } from "../@types/report.type";
 
 export const toReportEmailDTO = (
   report: any,
-  period: string
+  period: string,
+  baseCurrency?: string,
+  currencySummary?: Array<{ currency: string; transactionCount: number }>,
 ): ReportType => {
   return {
     period,
+    baseCurrency,
     totalIncome: report.income,
     totalExpenses: report.expenses,
     availableBalance: report.balance,
@@ -18,6 +21,7 @@ export const toReportEmailDTO = (
     })) ?? [],
 
     insights: report.insights ?? [],
+    currencySummary,
   };
 };
 

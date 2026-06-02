@@ -12,14 +12,14 @@ export const voiceConfig: VoiceConfig = {
   openai_temperature: 0.0,
   categories: [
     'groceries',
-    'dining',
+    'dining & restaurants',
     'transportation',
     'utilities',
     'entertainment',
     'shopping',
     'healthcare',
     'travel',
-    'housing',
+    'housing & rent',
     'income',
     'investments',
     'other'

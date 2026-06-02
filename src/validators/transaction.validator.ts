@@ -4,6 +4,7 @@ import {
   RecurringIntervalEnum,
   TransactionTypeEnum,
 } from "../models/transaction.model";
+import { isValidCurrencyCode } from "../utils/currency.constants";
 
 export const transactionIdSchema = z.string().trim().min(1);
 
@@ -40,6 +41,13 @@ export const baseTransactionSchema = z.object({
       PaymentMethodEnum.OTHER,
     ])
     .default(PaymentMethodEnum.CASH),
+  currency: z
+    .string()
+    .trim()
+    .length(3, "Currency code must be exactly 3 characters")
+    .toUpperCase()
+    .refine(isValidCurrencyCode, "Unsupported currency code")
+    .optional(),
 });
 
 export const bulkDeleteTransactionSchema = z.object({

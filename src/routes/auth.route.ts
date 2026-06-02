@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   forgotPasswordController,
   loginController,
+  logoutController,
+  refreshTokenController,
   resendOtpController,
   registerController,
   resetPasswordController,
@@ -13,6 +15,8 @@ const authRoutes = Router();
 
 authRoutes.post("/register", authLimiter, registerController);
 authRoutes.post("/login", authLimiter, loginController);
+authRoutes.post("/refresh-token", authLimiter, refreshTokenController);
+authRoutes.post("/logout", logoutController);
 authRoutes.post("/verify-otp", otpLimiter, verifyOtpController);
 authRoutes.post("/resend-otp", otpLimiter, resendOtpController);
 authRoutes.post("/forgot-password", otpLimiter, forgotPasswordController);

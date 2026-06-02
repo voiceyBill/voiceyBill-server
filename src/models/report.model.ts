@@ -11,7 +11,11 @@ export interface ReportDocument extends Document {
   userId: mongoose.Types.ObjectId;
   period: string;
   sentDate: Date;
+  startDate: Date;
+  endDate: Date;
   status: keyof typeof ReportStatusEnum;
+  baseCurrency: string;
+  currencySummary: { currency: string; transactionCount: number }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,11 +35,28 @@ const reportSchema = new mongoose.Schema<ReportDocument>(
       type: Date,
       required: true,
     },
+    startDate: {
+      type: Date,
+      required: true,
+    },
+    endDate: {
+      type: Date,
+      required: true,
+    },
     status: {
       type: String,
       enum: Object.values(ReportStatusEnum),
       default: ReportStatusEnum.PENDING,
     },
+    baseCurrency: {
+      type: String,
+      default: "USD",
+    },
+    currencySummary: {
+      currency: { type: String },
+      transactionCount: { type: Number }
+    },
+    
   },
   {
     timestamps: true,

@@ -4,6 +4,7 @@ import { asyncHandler } from "../middlewares/asyncHandler.middlerware";
 import {
   forgotPasswordSchema,
   loginSchema,
+  refreshTokenSchema,
   registerSchema,
   resendOtpSchema,
   resetPasswordSchema,
@@ -12,6 +13,7 @@ import {
 import {
   forgotPasswordService,
   loginService,
+  refreshTokenService,
   registerService,
   resendOtpService,
   resetPasswordService,
@@ -36,16 +38,38 @@ export const loginController = asyncHandler(
     const body = loginSchema.parse({
       ...req.body,
     });
-    const { user, accessToken, expiresAt, reportSetting } =
+    const { user, accessToken, refreshToken, expiresAt, reportSetting } =
       await loginService(body);
 
     return res.status(HTTPSTATUS.OK).json({
       message: "User logged in successfully",
       user,
       accessToken,
+      refreshToken,
       expiresAt,
       reportSetting,
     });
+  }
+);
+
+export const refreshTokenController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { refreshToken } = refreshTokenSchema.parse(req.body);
+    const result = await refreshTokenService(refreshToken);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Token refreshed",
+      ...result,
+    });
+  }
+);
+
+export const logoutController = asyncHandler(
+  async (_req: Request, res: Response) => {
+    // Stateless JWT: nothing to invalidate server-side. Client clears its own
+    // credentials. Returning 204 keeps the contract simple and lets the mobile
+    // client treat logout as fire-and-forget.
+    return res.status(HTTPSTATUS.NO_CONTENT).send();
   }
 );
 

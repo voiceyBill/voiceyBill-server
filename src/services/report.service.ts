@@ -1,13 +1,12 @@
 import mongoose from "mongoose";
-import ReportSettingModel from "../models/report-setting.model";
+import ReportSettingModel, { ReportFrequencyEnum } from "../models/report-setting.model";
 import ReportModel, { ReportStatusEnum } from "../models/report.model";
 import TransactionModel, {
   TransactionTypeEnum,
 } from "../models/transaction.model";
 import UserModel from "../models/user.model";
 import { NotFoundException } from "../utils/app-error";
-import { parseReportPeriod } from "../utils/date";
-import { calulateNextReportDate } from "../utils/helper";
+import { calculateNextReportDate } from "../utils/helper";
 import { reportInsightPrompt } from "../utils/prompt";
 import { UpdateReportSettingType } from "../validators/report.validator";
 import { convertToDollarUnit } from "../utils/format-currency";
@@ -67,7 +66,7 @@ export const updateReportSettingService = async (
     const currentNextReportDate = existingReportSetting.nextReportDate;
     const now = new Date();
     if (!currentNextReportDate || currentNextReportDate <= now) {
-      nextReportDate = calulateNextReportDate(
+      nextReportDate = calculateNextReportDate(
         existingReportSetting.lastSentDate,
       );
     } else {
@@ -87,6 +86,7 @@ export const generateReportService = async (
   userId: string,
   fromDate: Date,
   toDate: Date,
+  baseCurrency: string = "USD",
 ) => {
   const results = await TransactionModel.aggregate([
     {
@@ -141,6 +141,23 @@ export const generateReportService = async (
             $limit: 5,
           },
         ],
+
+        currencySummary: [
+          {
+            $match: {
+              originalCurrency: { $ne: null },
+            },
+          },
+          {
+            $group: {
+              _id: "$originalCurrency",
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $sort: { count: -1 },
+          },
+        ],
       },
     },
     {
@@ -152,6 +169,7 @@ export const generateReportService = async (
           $arrayElemAt: ["$summary.totalExpenses", 0],
         },
         categories: 1,
+        currencySummary: 1,
       },
     },
   ]);
@@ -166,6 +184,7 @@ export const generateReportService = async (
     totalIncome = 0,
     totalExpenses = 0,
     categories = [],
+    currencySummary = [],
   } = results[0] || {};
 
   const byCategory = categories.reduce(
@@ -192,21 +211,36 @@ export const generateReportService = async (
     savingsRate,
     categories: byCategory,
     periodLabel: periodLabel,
+    baseCurrency,
   });
 
+  const formattedCurrencySummary = currencySummary
+    .filter((cs: any) => cs._id !== null)
+    .map((cs: any) => ({
+      currency: cs._id,
+      transactionCount: cs.count,
+    }));
+
   await ReportModel.findOneAndUpdate(
-    { userId, period: periodLabel },
+    { userId, startDate: fromDate, endDate: toDate },
     {
       userId,
       period: periodLabel,
       sentDate: new Date(),
+      startDate: fromDate,
+      endDate: toDate,
       status: ReportStatusEnum.SENT,
+      baseCurrency,
+      currencySummary: formattedCurrencySummary
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
   );
 
   return {
     period: periodLabel,
+    startDate: fromDate,
+    endDate: toDate,
+    baseCurrency,
     summary: {
       income: convertToDollarUnit(totalIncome),
       expenses: convertToDollarUnit(totalExpenses),
@@ -219,6 +253,8 @@ export const generateReportService = async (
       })),
     },
     insights,
+    currencySummary:
+      formattedCurrencySummary.length > 0 ? formattedCurrencySummary : undefined,
   };
 };
 
@@ -229,6 +265,7 @@ async function generateInsightsAI({
   savingsRate,
   categories,
   periodLabel,
+  baseCurrency,
 }: {
   totalIncome: number;
   totalExpenses: number;
@@ -236,6 +273,7 @@ async function generateInsightsAI({
   savingsRate: number;
   categories: Record<string, { amount: number; percentage: number }>;
   periodLabel: string;
+  baseCurrency: string;
 }) {
   try {
     const prompt = reportInsightPrompt({
@@ -245,6 +283,7 @@ async function generateInsightsAI({
       savingsRate: Number(savingsRate.toFixed(1)),
       categories,
       periodLabel,
+      baseCurrency,
     });
 
     const result = await openai.chat.completions.create({
@@ -275,12 +314,16 @@ export const resendReportService = async (userId: string, reportId: string) => {
   const savedReport = await ReportModel.findOne({ _id: reportId, userId });
   if (!savedReport) throw new NotFoundException("Report not found");
 
-  const user = await UserModel.findById(userId);
+  const user = await UserModel.findById(userId).lean();
   if (!user) throw new NotFoundException("User not found");
 
-  const { fromDate, toDate } = parseReportPeriod(savedReport.period);
+  const generatedReport = await generateReportService(
+    userId, 
+    savedReport.startDate,
+    savedReport.endDate,
+    user.baseCurrency || "USD",
+  );
 
-  const generatedReport = await generateReportService(userId, fromDate, toDate);
 
   if (!generatedReport) {
     throw new NotFoundException("No report data available for this period");
@@ -289,8 +332,13 @@ export const resendReportService = async (userId: string, reportId: string) => {
   return sendReportEmail({
     email: user.email,
     username: user.name,
-    report: toReportEmailDTO(generatedReport.summary, generatedReport.period),
-    frequency: "Custom",
+    report: toReportEmailDTO(
+      generatedReport.summary,
+      generatedReport.period,
+      generatedReport.baseCurrency,
+      generatedReport.currencySummary,
+    ),
+    frequency:ReportFrequencyEnum.MONTHLY,
   });
 };
 

@@ -6,6 +6,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   profilePicture: string | null;
+  baseCurrency: string;
   isVerified: boolean;
   emailVerificationOtpHash?: string | null;
   emailVerificationOtpExpiresAt?: Date | null;
@@ -35,6 +36,12 @@ const userSchema = new Schema<UserDocument>(
     profilePicture: {
       type: String,
       default: null,
+    },
+    baseCurrency: {
+      type: String,
+      default: "USD",
+      uppercase: true,
+      trim: true,
     },
     password: {
       type: String,
