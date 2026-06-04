@@ -130,13 +130,15 @@ export const getAllTransactionService = async (
     keyword?: string;
     type?: keyof typeof TransactionTypeEnum;
     recurringStatus?: "RECURRING" | "NON_RECURRING";
+    startDate?: string;
+    endDate?: string;
   },
   pagination: {
     pageSize: unknown;
     pageNumber: unknown;
   },
 ) => {
-  const { keyword, type, recurringStatus } = filters;
+  const { keyword, type, recurringStatus, startDate, endDate } = filters;
 
   const filterConditions: Record<string, any> = {
     userId,
@@ -158,6 +160,16 @@ export const getAllTransactionService = async (
       filterConditions.isRecurring = true;
     } else if (recurringStatus === "NON_RECURRING") {
       filterConditions.isRecurring = false;
+    }
+  }
+
+  if (startDate || endDate) {
+    filterConditions.date = {};
+    if (startDate) filterConditions.date.$gte = new Date(startDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filterConditions.date.$lte = end;
     }
   }
 
