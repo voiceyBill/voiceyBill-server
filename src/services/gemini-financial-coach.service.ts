@@ -9,8 +9,6 @@ export class GeminiFinancialCoachService {
   private client: GoogleGenerativeAI | null = null;
 
   constructor(apiKey: string) {
-    console.log("🔑 API KEY RECEIVED:", apiKey?.slice(0, 10));
-
     if (!apiKey) {
       throw new Error("Missing GEMINI API KEY");
     }
