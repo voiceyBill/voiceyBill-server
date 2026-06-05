@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.3.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.2.0...backend-v1.3.0) (2026-06-05)
+
+
+### Features
+
+* add budget tracking feature to mobile app ([bf76c59](https://github.com/voiceyBill/voiceyBill-server/commit/bf76c59995639fc3258814a55ec8bbbffdbf9052))
+* Add budget tracking feature to mobile app ([d7e9ad1](https://github.com/voiceyBill/voiceyBill-server/commit/d7e9ad1997ee268ee80f14795da9e02a770f3e97))
+* **api:** Currency v2 migration - exchange rate service, cron jobs, … ([c980e15](https://github.com/voiceyBill/voiceyBill-server/commit/c980e15f22cf46632a3bd6ca052caa09b76884d8))
+* **api:** currency v2 migration - exchange rate service, cron jobs, currency constants ([223bff7](https://github.com/voiceyBill/voiceyBill-server/commit/223bff723f18e091d07b7d3f6afee7423d07aeb9))
+* **server:** Add secure delete account API with authentication ([75ded9c](https://github.com/voiceyBill/voiceyBill-server/commit/75ded9c79354147e4185fcc8fe48e4cdcf1c9525))
+
+
+### Bug Fixes
+
+* **api:** correct env variable names in currency cron and remove duplicate mongoose index ([b8fb42f](https://github.com/voiceyBill/voiceyBill-server/commit/b8fb42f6365ce59804fee427d8305b80aee3dce6))
+* **auth:** Add proper password error message ([b242660](https://github.com/voiceyBill/voiceyBill-server/commit/b242660419dab45ed6c2a70beb5c0ba1885388f4))
+* **auth:** Enforce registration password rules during password change ([37dc9b7](https://github.com/voiceyBill/voiceyBill-server/commit/37dc9b7bc0d507d7b428c6e432c5bb8a1d718279))
+* **auth:** Enforce registration password rules during password change ([936d73b](https://github.com/voiceyBill/voiceyBill-server/commit/936d73b960dbb884ee1e6998971e2ed0c9e67235))
+* **backend:** Merge fallback currencies with provider response to include PKR ([#113](https://github.com/voiceyBill/voiceyBill-server/issues/113)) ([95e5797](https://github.com/voiceyBill/voiceyBill-server/commit/95e5797cfdaaca5c4dcfb615911eef0457d37740))
+* **validation:** Allow decimal amounts less than 1 in transactions ([821c835](https://github.com/voiceyBill/voiceyBill-server/commit/821c835010e6e1135ada86b91329dde1f4d5ff0b))
+* **validation:** Allow decimal amounts less than 1 in transactions ([5a2499e](https://github.com/voiceyBill/voiceyBill-server/commit/5a2499ed7dbbb8851e5f0c914dba96021823adbb))
+
 ## [1.2.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.1.0...backend-v1.2.0) (2026-05-29)
 
 
