@@ -41,42 +41,43 @@ export const processReportJob = async () => {
       const session = await mongoose.startSession();
 
       try {
-        const report = await generateReportService(
-          user.id,
-          from,
-          to,
-          user.baseCurrency || "USD",
-        );
-
-        console.log(report, "resport data");
-
-        let emailSent = false;
-        if (report) {
-          try {
-            await sendReportEmail({
-              email: user.email!,
-              username: user.name!,
-              report: {
-                period: report.period,
-                baseCurrency: report.baseCurrency,
-                totalIncome: report.summary.income,
-                totalExpenses: report.summary.expenses,
-                availableBalance: report.summary.balance,
-                savingsRate: report.summary.savingsRate,
-                topSpendingCategories: report.summary.topCategories,
-                insights: report.insights,
-                currencySummary: report.currencySummary,
-              },
-              frequency: setting.frequency!,
-            });
-            emailSent = true;
-          } catch (error) {
-            console.log(`Email failed for ${user.id}`);
-          }
-        }
-
         await session.withTransaction(
           async () => {
+            const report = await generateReportService(
+              user.id,
+              from,
+              to,
+              user.baseCurrency || "USD",
+              session
+            );
+
+            console.log(report, "resport data");
+
+            let emailSent = false;
+            if (report) {
+              try {
+                await sendReportEmail({
+                  email: user.email!,
+                  username: user.name!,
+                  report: {
+                    period: report.period,
+                    baseCurrency: report.baseCurrency,
+                    totalIncome: report.summary.income,
+                    totalExpenses: report.summary.expenses,
+                    availableBalance: report.summary.balance,
+                    savingsRate: report.summary.savingsRate,
+                    topSpendingCategories: report.summary.topCategories,
+                    insights: report.insights,
+                    currencySummary: report.currencySummary,
+                  },
+                  frequency: setting.frequency!,
+                });
+                emailSent = true;
+              } catch (error) {
+                console.log(`Email failed for ${user.id}`);
+              }
+            }
+
             const bulkReports: any[] = [];
             const bulkSettings: any[] = [];
 
@@ -139,12 +140,12 @@ export const processReportJob = async () => {
             }
 
             await Promise.all([
-              ReportModel.bulkWrite(bulkReports, { ordered: false }),
-              ReportSettingModel.bulkWrite(bulkSettings, { ordered: false }),
+              ReportModel.bulkWrite(bulkReports, { ordered: false, session }),
+              ReportSettingModel.bulkWrite(bulkSettings, { ordered: false, session }),
             ]);
           },
           {
-            maxCommitTimeMS: 10000,
+            maxCommitTimeMS: 20000,
           }
         );
 
