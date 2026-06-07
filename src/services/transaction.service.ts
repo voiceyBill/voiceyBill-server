@@ -1,5 +1,4 @@
-import ExcelJS from "exceljs";
-import type { Row, Cell } from "exceljs";
+import XLSX from "xlsx-js-style";
 import TransactionModel, {
   TransactionTypeEnum,
 } from "../models/transaction.model";
@@ -506,7 +505,8 @@ export const scanReceiptService = async (
     throw new BadRequestException("Receipt scanning service unavailable");
   }
 };
-export const exportTransactionService = async (
+
+export const exportTransactionsService = async (
   userId: string,
   filters: {
     dateFrom?: string;
@@ -515,7 +515,7 @@ export const exportTransactionService = async (
     type?: string;
     recurringStatus?: string;
   },
-) => {
+): Promise<{ buffer: Buffer }> => {
   const filter: Record<string, any> = { userId };
 
   if (filters.keyword) {
@@ -530,34 +530,104 @@ export const exportTransactionService = async (
     filter.type = typedType;
   }
 
-  if (filters.recurringStatus) {
-    filter.isRecurring = filters.recurringStatus === "RECURRING";
+  if (filters.recurringStatus === "RECURRING") {
+    filter.isRecurring = true;
+  } else if (filters.recurringStatus === "NON_RECURRING") {
+    filter.isRecurring = false;
   }
 
   if (filters.dateFrom || filters.dateTo) {
     filter.date = {};
     if (filters.dateFrom) {
       const from = new Date(filters.dateFrom);
-      from.setHours(0, 0, 0, 0);
+      from.setUTCHours(0, 0, 0, 0);
       filter.date.$gte = from;
     }
     if (filters.dateTo) {
       const to = new Date(filters.dateTo);
-      to.setHours(23, 59, 59, 999);
+      to.setUTCHours(23, 59, 59, 999);
       filter.date.$lte = to;
     }
   }
 
+  // DB call
   const EXPORT_LIMIT = 10000;
-const txList = await TransactionModel.find(filter)
+  const transactions = await TransactionModel.find(filter)
     .sort({ date: -1 })
     .limit(EXPORT_LIMIT)
     .lean();
-  const totalCount = await TransactionModel.countDocuments(filter);
-return {
-    transactions: txList,
-    totalCount,
-    isLimited: totalCount > EXPORT_LIMIT,
-    exportedCount: txList.length,
-  };
+
+  // Excel building logic
+  const workbook = XLSX.utils.book_new();
+  const worksheet: XLSX.WorkSheet = {};
+
+  const headers = ["Date", "Title", "Amount", "Category", "Type"];
+  const headerRow = headers.map((h) => ({
+    v: h,
+    t: "s",
+    s: {
+      font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12 },
+      fill: { fgColor: { rgb: "22C55E" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } },
+      },
+    },
+  }));
+
+  const dataRows = transactions.map((t, index) => {
+    const bgColor = index % 2 === 0 ? "F0FDF4" : "FFFFFF";
+    const cellStyle = {
+      fill: { fgColor: { rgb: bgColor } },
+      alignment: { horizontal: "left", vertical: "center" },
+      border: {
+        top: { style: "thin", color: { rgb: "D1D5DB" } },
+        bottom: { style: "thin", color: { rgb: "D1D5DB" } },
+        left: { style: "thin", color: { rgb: "D1D5DB" } },
+        right: { style: "thin", color: { rgb: "D1D5DB" } },
+      },
+    };
+
+    return [
+      { v: new Date(t.date).toLocaleDateString(), t: "s", s: cellStyle },
+      { v: t.title, t: "s", s: cellStyle },
+      { v: t.amount, t: "n", s: { ...cellStyle, alignment: { horizontal: "right" } } },
+      { v: t.category, t: "s", s: cellStyle },
+      {
+        v: t.type === "EXPENSE" ? "Expense" : "Income",
+        t: "s",
+        s: {
+          ...cellStyle,
+          font: {
+            bold: true,
+            color: { rgb: t.type === "EXPENSE" ? "EF4444" : "22C55E" },
+          },
+        },
+      },
+    ];
+  });
+
+  const allRows = [headerRow, ...dataRows];
+  allRows.forEach((row, rowIndex) => {
+    row.forEach((cell, colIndex) => {
+      const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+      worksheet[cellRef] = cell;
+    });
+  });
+
+  worksheet["!cols"] = [{ wch: 14 }, { wch: 22 }, { wch: 14 }, { wch: 18 }, { wch: 10 }];
+  worksheet["!rows"] = [{ hpt: 24 }];
+  worksheet["!ref"] = XLSX.utils.encode_range({
+    s: { r: 0, c: 0 },
+    e: { r: allRows.length - 1, c: headers.length - 1 },
+  });
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+  return { buffer };
 };
