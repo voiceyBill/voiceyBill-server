@@ -217,10 +217,6 @@ export const exportTransactionController = asyncHandler(
     const transactions = await TransactionModel.find(filter)
       .sort({ date: -1 })
       .lean();
-      console.log("Received dateFrom:", typedDateFrom);
-console.log("Received dateTo:", typedDateTo);
-console.log("Filter date:", JSON.stringify(filter.date));
-console.log("Transactions found:", transactions.length);
     const rows = transactions.map((t) => ({
       Date: new Date(t.date).toLocaleDateString(),
       Title: t.title,
