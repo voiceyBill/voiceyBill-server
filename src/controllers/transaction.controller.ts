@@ -20,8 +20,10 @@ import {
   getTransactionByIdService,
   scanReceiptService,
   updateTransactionService,
+  exportTransactionsService,
 } from "../services/transaction.service";
 import { TransactionTypeEnum } from "../models/transaction.model";
+import Transaction from "../models/transaction.model";
 
 export const createTransactionController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -51,6 +53,7 @@ export const getAllTransactionController = asyncHandler(
       dateFrom: req.query.dateFrom as string | undefined,
       dateTo: req.query.dateTo as string | undefined,
     };
+
     const pagination = {
       pageSize: req.query.pageSize,
       pageNumber: req.query.pageNumber,
@@ -158,7 +161,7 @@ export const scanReceiptController = asyncHandler(
     const result = await scanReceiptService(file);
 
     return res.status(HTTPSTATUS.OK).json({
-      message: "Reciept scanned successfully",
+      message: "Receipt scanned successfully",
       data: result,
     });
   },

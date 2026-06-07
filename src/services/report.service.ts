@@ -87,6 +87,7 @@ export const generateReportService = async (
   fromDate: Date,
   toDate: Date,
   baseCurrency: string = "USD",
+  session?: mongoose.ClientSession
 ) => {
   const results = await TransactionModel.aggregate([
     {
@@ -172,7 +173,7 @@ export const generateReportService = async (
         currencySummary: 1,
       },
     },
-  ]);
+  ]).session(session || null);
 
   if (
     !results?.length ||
@@ -233,7 +234,7 @@ export const generateReportService = async (
       baseCurrency,
       currencySummary: formattedCurrencySummary
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, new: true, setDefaultsOnInsert: true, session },
   );
 
   return {
