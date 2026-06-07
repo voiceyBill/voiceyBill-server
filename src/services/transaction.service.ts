@@ -117,7 +117,10 @@ export const getAllTransactionService = async (
     keyword?: string;
     type?: keyof typeof TransactionTypeEnum;
     recurringStatus?: "RECURRING" | "NON_RECURRING";
+    dateFrom?: string; 
+    dateTo?: string; 
   },
+  
   pagination: {
     pageSize: unknown;
     pageNumber: unknown;
@@ -144,6 +147,19 @@ if (recurringStatus === "RECURRING") {
   filterConditions.isRecurring = true;
 } else if (recurringStatus === "NON_RECURRING") {
   filterConditions.isRecurring = false;
+}
+if (filters.dateFrom || filters.dateTo) {
+  filterConditions.date = {};
+  if (filters.dateFrom) {
+    const from = new Date(filters.dateFrom);
+    from.setHours(0, 0, 0, 0);
+    filterConditions.date.$gte = from;
+  }
+  if (filters.dateTo) {
+    const to = new Date(filters.dateTo);
+    to.setHours(23, 59, 59, 999);
+    filterConditions.date.$lte = to;
+  }
 }
 
   // Sanitize pagination inputs to prevent abuse and invalid queries
@@ -531,18 +547,12 @@ export const exportTransactionService = async (
   }
 
   const EXPORT_LIMIT = 10000;
-
-  const txList = await TransactionModel.find(filter)
+const txList = await TransactionModel.find(filter)
     .sort({ date: -1 })
     .limit(EXPORT_LIMIT)
     .lean();
-
   const totalCount = await TransactionModel.countDocuments(filter);
-
-  console.log("Filter:", JSON.stringify(filter));
-  console.log("Transactions found:", txList.length);
-
-  return {
+return {
     transactions: txList,
     totalCount,
     isLimited: totalCount > EXPORT_LIMIT,
