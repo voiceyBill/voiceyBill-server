@@ -20,6 +20,7 @@ import {
   updateTransactionService,
 } from "../services/transaction.service";
 import { TransactionTypeEnum } from "../models/transaction.model";
+// import Transaction from "../models/transaction.model";
 
 export const createTransactionController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -32,7 +33,7 @@ export const createTransactionController = asyncHandler(
       message: "Transaction created successfully",
       transaction,
     });
-  }
+  },
 );
 
 export const getAllTransactionController = asyncHandler(
@@ -48,10 +49,10 @@ export const getAllTransactionController = asyncHandler(
         | undefined,
     };
 
-  const pagination = {
-    pageSize: req.query.pageSize,
-    pageNumber: req.query.pageNumber,
-  };
+    const pagination = {
+      pageSize: req.query.pageSize,
+      pageNumber: req.query.pageNumber,
+    };
 
     const result = await getAllTransactionService(userId, filters, pagination);
 
@@ -59,7 +60,7 @@ export const getAllTransactionController = asyncHandler(
       message: "Transaction fetched successfully",
       ...result,
     });
-  }
+  },
 );
 
 export const getTransactionByIdController = asyncHandler(
@@ -73,7 +74,7 @@ export const getTransactionByIdController = asyncHandler(
       message: "Transaction fetched successfully",
       transaction,
     });
-  }
+  },
 );
 
 export const duplicateTransactionController = asyncHandler(
@@ -83,14 +84,14 @@ export const duplicateTransactionController = asyncHandler(
 
     const transaction = await duplicateTransactionService(
       userId,
-      transactionId
+      transactionId,
     );
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Transaction duplicated successfully",
       data: transaction,
     });
-  }
+  },
 );
 
 export const updateTransactionController = asyncHandler(
@@ -104,7 +105,7 @@ export const updateTransactionController = asyncHandler(
     return res.status(HTTPSTATUS.OK).json({
       message: "Transaction updated successfully",
     });
-  }
+  },
 );
 
 export const deleteTransactionController = asyncHandler(
@@ -117,7 +118,7 @@ export const deleteTransactionController = asyncHandler(
     return res.status(HTTPSTATUS.OK).json({
       message: "Transaction deleted successfully",
     });
-  }
+  },
 );
 
 export const bulkDeleteTransactionController = asyncHandler(
@@ -131,7 +132,7 @@ export const bulkDeleteTransactionController = asyncHandler(
       message: "Transaction deleted successfully",
       ...result,
     });
-  }
+  },
 );
 
 export const bulkTransactionController = asyncHandler(
@@ -145,7 +146,7 @@ export const bulkTransactionController = asyncHandler(
       message: "Bulk transaction inserted successfully",
       ...result,
     });
-  }
+  },
 );
 
 export const scanReceiptController = asyncHandler(
@@ -155,8 +156,8 @@ export const scanReceiptController = asyncHandler(
     const result = await scanReceiptService(file);
 
     return res.status(HTTPSTATUS.OK).json({
-      message: "Reciept scanned successfully",
+      message: "Receipt scanned successfully",
       data: result,
     });
-  }
+  },
 );

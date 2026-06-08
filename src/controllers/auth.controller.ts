@@ -19,6 +19,8 @@ import {
   resetPasswordService,
   verifyOtpService,
 } from "../services/auth.service";
+import { googleAuthSchema } from "../validators/google-auth.validator";
+import { googleAuthService } from "../services/google-auth.service";
 
 export const registerController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -114,6 +116,23 @@ export const resetPasswordController = asyncHandler(
 
     return res.status(HTTPSTATUS.OK).json({
       message: result.message,
+    });
+  }
+);
+
+export const googleAuthController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const body = googleAuthSchema.parse(req.body);
+
+    const result = await googleAuthService(body);
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "User authenticated successfully with Google",
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      expiresAt: result.expiresAt,
+      reportSetting: result.reportSetting,
     });
   }
 );

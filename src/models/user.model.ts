@@ -5,14 +5,17 @@ export enum BudgetImbalanceStatusEnum {
   BALANCED = "BALANCED",
   IMBALANCED = "IMBALANCED",
 }
+export type AuthProvider = "local" | "google";
 
 export interface UserDocument extends Document {
   name: string;
   email: string;
-  password: string;
+  password: string | null;
   profilePicture: string | null;
   baseCurrency: string;
   isVerified: boolean;
+  provider: AuthProvider;
+  providerId?: string | null;
   emailVerificationOtpHash?: string | null;
   emailVerificationOtpExpiresAt?: Date | null;
   passwordResetOtpHash?: string | null;
@@ -54,7 +57,19 @@ const userSchema = new Schema<UserDocument>(
     password: {
       type: String,
       select: true,
-      required: true,
+      required: false,
+      default: null,
+    },
+    provider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    providerId: {
+      type: String,
+      default: null,
+      sparse: true,
+      index: true,
     },
     isVerified: {
       type: Boolean,
@@ -125,6 +140,9 @@ userSchema.methods.omitPassword = function (): Omit<UserDocument, "password"> {
 };
 
 userSchema.methods.comparePassword = async function (password: string) {
+  if (!this.password) {
+    return false;
+  }
   return compareValue(password, this.password);
 };
 

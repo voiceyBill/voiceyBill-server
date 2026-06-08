@@ -8,6 +8,7 @@ import {
   registerController,
   resetPasswordController,
   verifyOtpController,
+  googleAuthController,
 } from "../controllers/auth.controller";
 import { otpLimiter, authLimiter } from "../middlewares/rateLimit.middleware";
 
@@ -15,6 +16,7 @@ const authRoutes = Router();
 
 authRoutes.post("/register", authLimiter, registerController);
 authRoutes.post("/login", authLimiter, loginController);
+authRoutes.post("/google", authLimiter, googleAuthController);
 authRoutes.post("/refresh-token", authLimiter, refreshTokenController);
 authRoutes.post("/logout", logoutController);
 authRoutes.post("/verify-otp", otpLimiter, verifyOtpController);

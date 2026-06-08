@@ -11,9 +11,16 @@ const formatZodError = (res: Response, error: z.ZodError) => {
     field: err.path.join("."),
     message: err.message,
   }));
+
+  const hasPasswordError = errors.some(
+    (err) => err.field === "password" || err.field === "newPassword",
+  );
+
   return res.status(HTTPSTATUS.BAD_REQUEST).json({
-    message: "Validation failed",
-    errors: errors,
+    message: hasPasswordError
+      ? "Password must contain at least 8 characters, an uppercase letter, a number, and a special character"
+      : "Validation failed",
+    errors,
     errorCode: ErrorCodeEnum.VALIDATION_ERROR,
   });
 };
@@ -37,14 +44,15 @@ export const errorHandler: ErrorRequestHandler = (
   error,
   req,
   res,
-  next
+  next,
 ): any => {
-  const errorInfo = error && typeof error === "object"
-    ? {
-      message: (error as Error).message,
-      stack: (error as Error).stack,
-    }
-    : error;
+  const errorInfo =
+    error && typeof error === "object"
+      ? {
+          message: (error as Error).message,
+          stack: (error as Error).stack,
+        }
+      : error;
 
   console.error("Error occurred on PATH:", req.path, "Error:", errorInfo);
 

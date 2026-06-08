@@ -14,6 +14,7 @@ import {
 } from "../validators/budget.validator";
 import { toBudgetSummaryDTO, BudgetSummaryDTO } from "../dto/budget.dto";
 import { sendBudgetAlertEmail } from "../mailers/budget-alert.mailer";
+import { sendBudgetIncreaseEmail } from "../mailers/budget-increase.mailer";
 
 // Valid categories that users can set budgets for
 const VALID_CATEGORIES = [
@@ -107,6 +108,59 @@ export async function createOrUpdateBudget(
   });
 
   if (existingBudget) {
+    // Detect budget increases for email notification
+    const budgetIncreases: Array<{
+      type: "overall" | "category";
+      category?: string;
+      previousAmount: number;
+      newAmount: number;
+    }> = [];
+
+    // Check overall budget increase
+    if (totalBudget > existingBudget.totalBudget) {
+      budgetIncreases.push({
+        type: "overall",
+        previousAmount: existingBudget.totalBudget,
+        newAmount: totalBudget,
+      });
+    }
+
+    // Check category budget increases
+    categoryLimits.forEach((newCategory) => {
+      const oldCategory = existingBudget.categoryLimits.find(
+        (c) => c.category === newCategory.category
+      );
+      if (oldCategory && newCategory.limit > oldCategory.limit) {
+        budgetIncreases.push({
+          type: "category",
+          category: newCategory.category,
+          previousAmount: oldCategory.limit,
+          newAmount: newCategory.limit,
+        });
+      }
+    });
+
+    // Send budget increase email if there are increases
+    if (budgetIncreases.length > 0) {
+      try {
+        const user = await UserModel.findById(userId);
+        if (user && user.email) {
+          await sendBudgetIncreaseEmail({
+            email: user.email,
+            username: user.name,
+            month,
+            year,
+            previousBudget: existingBudget.totalBudget,
+            newBudget: totalBudget,
+            increases: budgetIncreases,
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail the request if email fails
+        console.error("Failed to send budget increase email:", error);
+      }
+    }
+
     // Update existing budget
     existingBudget.totalBudget = totalBudget;
     existingBudget.categoryLimits = categoryLimits;
@@ -156,7 +210,7 @@ export async function getBudgetSummary(
   // Get the summary (returns empty summary if no budget exists)
   const summary = await toBudgetSummaryDTO(budget, month, year, userId);
 
-  // Send email alert if there are exceeded budgets
+  // Send budget alert email every time the budget summary is opened/refetched.
   if (summary.hasBudget && summary.alerts.length > 0) {
     try {
       const user = await UserModel.findById(userId);

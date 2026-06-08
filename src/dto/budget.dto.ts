@@ -30,6 +30,9 @@ export interface BudgetSummaryDTO {
   alerts: BudgetAlert[];
 }
 
+const normalizeBudgetCategory = (category: string) =>
+  category.trim().toLowerCase().replace(/\s+/g, "_");
+
 export async function toBudgetSummaryDTO(
   budget: BudgetDocument | null,
   month: number,
@@ -65,49 +68,52 @@ export async function toBudgetSummaryDTO(
     },
   });
 
-  // Calculate spending by category
+  // Calculate spending by category and total monthly expenses.
   const categorySpending: Record<string, number> = {};
+  let totalSpent = 0;
+
   transactions.forEach((transaction) => {
-    if (!categorySpending[transaction.category]) {
-      categorySpending[transaction.category] = 0;
+    const transactionCategory = normalizeBudgetCategory(transaction.category);
+
+    if (!categorySpending[transactionCategory]) {
+      categorySpending[transactionCategory] = 0;
     }
     // The amount is already converted to dollar unit by the getter
     const amount = typeof transaction.amount === 'number'
       ? transaction.amount
       : parseFloat(String(transaction.amount || 0));
-    categorySpending[transaction.category] += amount;
+    categorySpending[transactionCategory] += amount;
+    totalSpent += amount;
   });
 
-  // Calculate total spent and category summaries
-  let totalSpent = 0;
+  // Calculate category summaries for categories with explicit limits.
   const alerts: BudgetAlert[] = [];
   const categories: BudgetCategorySummaryDTO[] = budget.categoryLimits.map(
     (categoryLimit) => {
-      const spent = categorySpending[categoryLimit.category] || 0;
+      const categoryName = normalizeBudgetCategory(categoryLimit.category);
+      const spent = categorySpending[categoryName] || 0;
       const remaining = categoryLimit.limit - spent;
       const usagePercentage =
         categoryLimit.limit > 0 ? (spent / categoryLimit.limit) * 100 : 0;
       const exceeded = spent > categoryLimit.limit;
-
-      totalSpent += spent;
 
       // Generate alerts for exceeded categories
       if (exceeded) {
         alerts.push({
           message: `${categoryLimit.category} budget exceeded by $${(Math.round(spent - categoryLimit.limit))}`,
           type: "category",
-          category: categoryLimit.category,
+          category: categoryName,
         });
       } else if (usagePercentage >= 80) {
         alerts.push({
           message: `${categoryLimit.category} budget is ${Math.round(usagePercentage)}% used`,
           type: "category",
-          category: categoryLimit.category,
+          category: categoryName,
         });
       }
 
       return {
-        name: categoryLimit.category,
+        name: categoryName,
         limit: categoryLimit.limit,
         spent,
         remaining,

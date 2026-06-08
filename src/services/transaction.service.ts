@@ -277,7 +277,7 @@ export const updateTransactionService = async (
     const inputAmount =
       body.amount !== undefined
         ? Number(body.amount)
-        : existingTransaction.originalAmount ?? existingTransaction.amount;
+        : (existingTransaction.originalAmount ?? existingTransaction.amount);
     const inputCurrency =
       body.currency ||
       existingTransaction.originalCurrency ||
@@ -366,7 +366,7 @@ export const bulkTransactionService = async (
   try {
     const user = await UserModel.findById(userId).select("baseCurrency").lean();
     const baseCurrency = user?.baseCurrency || "USD";
-    
+
     const bulkOps = await Promise.all(
       transactions.map(async (tx) => {
         const currencyFields = await resolveCurrencyConversion(
@@ -423,8 +423,8 @@ export const scanReceiptService = async (
 
   try {
     if (!file.path) {
-    throw new BadRequestException("Failed to upload file");
-    } 
+      throw new BadRequestException("Failed to upload file");
+    }
     const result = await openai.chat.completions.create({
       model: openAIModel,
       messages: [
@@ -464,7 +464,7 @@ export const scanReceiptService = async (
         ? data.category.toLowerCase().trim()
         : "other";
 
-      const allowedCategories = [
+    const allowedCategories = [
       "groceries",
       "dining & restaurants",
       "transportation",
