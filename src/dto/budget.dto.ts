@@ -117,7 +117,7 @@ export async function toBudgetSummaryDTO(
         limit: categoryLimit.limit,
         spent,
         remaining,
-        usagePercentage: Number(Math.min(usagePercentage, 100)),
+        usagePercentage: Number(usagePercentage),
         exceeded,
       };
     }
@@ -148,7 +148,7 @@ export async function toBudgetSummaryDTO(
     totalBudget: budget.totalBudget,
     spent: totalSpent,
     remaining,
-    usagePercentage: Number(Math.min(usagePercentage, 100)),
+    usagePercentage: Number(usagePercentage),
     exceeded,
     categories,
     alerts,

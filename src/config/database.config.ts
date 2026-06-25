@@ -47,6 +47,28 @@ const connectDbWithRetry = async (dbURI: string, maxRetries: number) => {
       });
       console.log("Connected to MongoDB");
 
+      // One-time migration to convert string dates to Date objects for legacy bulk imports
+      try {
+        const db = mongoose.connection.db;
+        if (db) {
+          const result = await db.collection("transactions").updateMany(
+            { date: { $type: "string" } },
+            [
+              {
+                $set: {
+                  date: { $toDate: "$date" }
+                }
+              }
+            ]
+          );
+          if (result.modifiedCount > 0) {
+            console.log(`Converted ${result.modifiedCount} legacy string transactions to Date objects.`);
+          }
+        }
+      } catch (migrationErr) {
+        console.error("Failed to run string date migration:", migrationErr);
+      }
+
       break;
     } catch (err) {
       console.error(`Failed to connect to MongoDB: ${err}. Retrying...`);

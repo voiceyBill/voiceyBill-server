@@ -11,6 +11,14 @@ export const updateUserSchema = z.object({
     .toUpperCase()
     .refine(isValidCurrencyCode, "Unsupported currency code")
     .optional(),
+  customCategories: z
+    .array(
+      z.object({
+        value: z.string().trim().min(1),
+        label: z.string().trim().min(1),
+      })
+    )
+    .optional(),
 });
 
 export type UpdateUserType = z.infer<typeof updateUserSchema>;

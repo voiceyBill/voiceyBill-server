@@ -58,11 +58,14 @@ function validateMonthYear(month: number, year: number): void {
 /**
  * Validate that all categories are in the allowed list
  */
-function validateCategories(categoryLimits: Array<{ category: string; limit: number }>): void {
+function validateCategories(
+  categoryLimits: Array<{ category: string; limit: number }>,
+  allowedCategories: string[]
+): void {
   for (const limit of categoryLimits) {
-    if (!VALID_CATEGORIES.includes(limit.category)) {
+    if (!allowedCategories.includes(limit.category)) {
       throw new BadRequestException(
-        `Invalid category: ${limit.category}. Valid categories are: ${VALID_CATEGORIES.join(", ")}`,
+        `Invalid category: ${limit.category}. Valid categories are: ${allowedCategories.join(", ")}`,
         ErrorCodeEnum.VALIDATION_ERROR
       );
     }
@@ -94,8 +97,41 @@ export async function createOrUpdateBudget(
   // Validate month/year
   validateMonthYear(month, year);
 
-  // Validate categories
-  validateCategories(categoryLimits);
+  // Validate categories — include user's custom categories as allowed
+  // Load user document (mutable) so we can persist new custom categories if needed
+  const user = await UserModel.findById(userId);
+  const userCustom = (user && (user as any).customCategories) || [];
+
+  // If client included new categories that are not in VALID_CATEGORIES and not yet persisted,
+  // persist them as custom categories (safe: only allow simple slug-like names)
+  const userCustomValues = userCustom.map((c: any) => c.value);
+  const incomingValues = categoryLimits.map((c) => String(c.category).trim());
+
+  const safeNewValues = incomingValues.filter((val) => {
+    if (VALID_CATEGORIES.includes(val)) return false;
+    if (userCustomValues.includes(val)) return false;
+    // allow only alphanumeric, underscore and hyphen to be auto-added
+    return /^[a-z0-9_\-]+$/i.test(val);
+  });
+
+  if (safeNewValues.length > 0 && user) {
+    for (const val of safeNewValues) {
+      const existing = (user as any).customCategories || [];
+      const label = String(val).replace(/[_\-]+/g, " ").replace(/\b\w/g, (m: string) => m.toUpperCase());
+      existing.push({ value: val, label });
+      (user as any).customCategories = existing;
+    }
+    try {
+      await user.save();
+    } catch (e) {
+      // If saving custom categories fails, proceed without persisting — validation below will still include them in allowed list
+      console.warn('Failed to persist new custom categories', e);
+    }
+  }
+
+  const updatedUserCustom = (user && (user as any).customCategories) || [];
+  const allowed = Array.from(new Set([...VALID_CATEGORIES, ...updatedUserCustom.map((c: any) => c.value), ...incomingValues]));
+  validateCategories(categoryLimits, allowed);
 
   // Validate category sum doesn't exceed total
   validateCategorySum(totalBudget, categoryLimits);

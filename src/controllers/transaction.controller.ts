@@ -47,6 +47,8 @@ export const getAllTransactionController = asyncHandler(
         | "RECURRING"
         | "NON_RECURRING"
         | undefined,
+      startDate: req.query.startDate as string | undefined,
+      endDate: req.query.endDate as string | undefined,
     };
 
     const pagination = {

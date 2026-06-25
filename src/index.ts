@@ -8,6 +8,7 @@ import { Env } from "./config/env.config";
 import { HTTPSTATUS } from "./config/http.config";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import { asyncHandler } from "./middlewares/asyncHandler.middlerware";
+import { performanceLogger } from "./middlewares/performanceLogger.middleware";
 import { ensureDatabaseConnection } from "./config/database.config";
 import authRoutes from "./routes/auth.route";
 import { passportAuthenticateJwt } from "./config/passport.config";
@@ -17,11 +18,16 @@ import { initializeCrons } from "./cron";
 import reportRoutes from "./routes/report.route";
 import analyticsRoutes from "./routes/analytics.route";
 import voiceRoutes from "./routes/voice.route";
+import categoryRoutes from "./routes/category.route";
 import budgetRoutes from "./routes/budget.route";
 import currencyRoutes from "./routes/currency.route";
 
 const app = express();
 const BASE_PATH = Env.BASE_PATH;
+
+// PERF: response-time instrumentation must wrap every request — register first,
+// before body parsing and routes, so it captures the full request lifetime.
+app.use(performanceLogger);
 
 const allowedOrigins = new Set(
   [
@@ -139,6 +145,7 @@ app.use(`${BASE_PATH}/transaction`, ensureDatabaseConnection, passportAuthentica
 app.use(`${BASE_PATH}/report`, ensureDatabaseConnection, passportAuthenticateJwt, reportRoutes);
 app.use(`${BASE_PATH}/analytics`, ensureDatabaseConnection, passportAuthenticateJwt, analyticsRoutes);
 app.use(`${BASE_PATH}/voice`, ensureDatabaseConnection, passportAuthenticateJwt, voiceRoutes);
+app.use(`${BASE_PATH}/category`, ensureDatabaseConnection, passportAuthenticateJwt, categoryRoutes);
 app.use(`${BASE_PATH}/budget`, ensureDatabaseConnection, passportAuthenticateJwt, budgetRoutes);
 app.use(`${BASE_PATH}/currency`, ensureDatabaseConnection, passportAuthenticateJwt, currencyRoutes);
 

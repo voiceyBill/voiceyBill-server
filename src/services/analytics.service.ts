@@ -112,51 +112,30 @@ export const summaryAnalyticsService = async (
     },
   ];
 
-  const [current] = await TransactionModel.aggregate(currentPeriodPipeline);
+  // PERF: the previous-period pipeline depends only on the requested range
+  // (not on the current-period result), so build it up front and run both
+  // aggregations in parallel instead of sequentially.
+  const needsPrevious = !!(
+    from &&
+    to &&
+    rangeValue !== DateRangeEnum.ALL_TIME
+  );
 
-  const {
-    totalIncome = 0,
-    totalExpenses = 0,
-    availableBalance = 0,
-    transactionCount = 0,
-    savingData = {
-      expenseRatio: 0,
-      savingsPercentage: 0,
-    },
-  } = current || {};
+  let prevPeriodFrom: Date | null = null;
+  let prevPeriodTo: Date | null = null;
+  let prevPeriodPipeline: PipelineStage[] | null = null;
 
-  console.log(current, "current");
-
-  let percentageChange: any = {
-    income: 0,
-    expenses: 0,
-    balance: 0,
-    prevPeriodFrom: null,
-    prevPeriodTo: null,
-    previousValues: {
-      incomeAmount: 0,
-      expenseAmount: 0,
-      balanceAmount: 0,
-    },
-  };
-
-  if (from && to && rangeValue !== DateRangeEnum.ALL_TIME) {
-    //last 30 days  previous las 30 days,
-
+  if (needsPrevious && from && to) {
     const period = differenceInDays(to, from) + 1;
-    console.log(`${differenceInDays(to, from)}`, period, "period");
-
     const isYearly = [
       DateRangeEnum.LAST_YEAR,
       DateRangeEnum.THIS_YEAR,
     ].includes(rangeValue);
 
-    const prevPeriodFrom = isYearly ? subYears(from, 1) : subDays(from, period);
+    prevPeriodFrom = isYearly ? subYears(from, 1) : subDays(from, period);
+    prevPeriodTo = isYearly ? subYears(to, 1) : subDays(to, period);
 
-    const prevPeriodTo = isYearly ? subYears(to, 1) : subDays(to, period);
-    console.log(prevPeriodFrom, prevPeriodTo, "Prev date");
-
-    const prevPeriodPipeline = [
+    prevPeriodPipeline = [
       {
         $match: {
           userId: new mongoose.Types.ObjectId(userId),
@@ -190,32 +169,60 @@ export const summaryAnalyticsService = async (
         },
       },
     ];
+  }
 
-    const [previous] = await TransactionModel.aggregate(prevPeriodPipeline);
+  // PERF: current + previous period aggregations run concurrently.
+  const [currentResult, previousResult] = await Promise.all([
+    TransactionModel.aggregate(currentPeriodPipeline),
+    prevPeriodPipeline
+      ? TransactionModel.aggregate(prevPeriodPipeline)
+      : Promise.resolve([] as Record<string, number>[]),
+  ]);
 
-    
-    if (previous) {
-      const prevIncome = previous.totalIncome || 0;
-      const prevExpenses = previous.totalExpenses || 0;
-      const prevBalance = prevIncome - prevExpenses;
+  const current = currentResult[0];
+  const previous = previousResult[0];
 
-      const currentIncome = totalIncome;
-      const currentExpenses = totalExpenses;
-      const currentBalance = availableBalance;
+  const {
+    totalIncome = 0,
+    totalExpenses = 0,
+    availableBalance = 0,
+    transactionCount = 0,
+    savingData = {
+      expenseRatio: 0,
+      savingsPercentage: 0,
+    },
+  } = current || {};
 
-      percentageChange = {
-        income: calaulatePercentageChange(prevIncome, currentIncome),
-        expenses: calaulatePercentageChange(prevExpenses, currentExpenses),
-        balance: calaulatePercentageChange(prevBalance, currentBalance),
-        prevPeriodFrom: prevPeriodFrom,
-        prevPeriodTo: prevPeriodTo,
-        previousValues: {
-          incomeAmount: prevIncome,
-          expenseAmount: prevExpenses,
-          balanceAmount: prevBalance,
-        },
-      };
-    }
+  let percentageChange: any = {
+    income: 0,
+    expenses: 0,
+    balance: 0,
+    prevPeriodFrom: null,
+    prevPeriodTo: null,
+    previousValues: {
+      incomeAmount: 0,
+      expenseAmount: 0,
+      balanceAmount: 0,
+    },
+  };
+
+  if (needsPrevious && previous) {
+    const prevIncome = previous.totalIncome || 0;
+    const prevExpenses = previous.totalExpenses || 0;
+    const prevBalance = prevIncome - prevExpenses;
+
+    percentageChange = {
+      income: calaulatePercentageChange(prevIncome, totalIncome),
+      expenses: calaulatePercentageChange(prevExpenses, totalExpenses),
+      balance: calaulatePercentageChange(prevBalance, availableBalance),
+      prevPeriodFrom: prevPeriodFrom,
+      prevPeriodTo: prevPeriodTo,
+      previousValues: {
+        incomeAmount: prevIncome,
+        expenseAmount: prevExpenses,
+        balanceAmount: prevBalance,
+      },
+    };
   }
 
   return {

@@ -156,6 +156,13 @@ const transactionSchema = new Schema<TransactionDocument>(
   }
 );
 
+// PERF: the transactions collection had NO indexes — every list/analytics
+// query was a full collection scan per user. These compound indexes match the
+// real access patterns: list = filter by userId + sort by createdAt desc;
+// analytics/reports = match userId + date range.
+transactionSchema.index({ userId: 1, createdAt: -1 });
+transactionSchema.index({ userId: 1, date: -1 });
+
 const TransactionModel = mongoose.model<TransactionDocument>(
   "Transaction",
   transactionSchema

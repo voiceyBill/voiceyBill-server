@@ -24,6 +24,7 @@ export interface UserDocument extends Document {
   budgetImbalanceStatus: keyof typeof BudgetImbalanceStatusEnum;
   budgetImbalanceNotifiedAt?: Date | null;
   budgetImbalanceNotificationsEnabled: boolean;
+  customCategories?: { value: string; label: string }[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword: (password: string) => Promise<boolean>;
@@ -113,6 +114,14 @@ const userSchema = new Schema<UserDocument>(
     budgetImbalanceNotificationsEnabled: {
       type: Boolean,
       default: true,
+    customCategories: {
+      type: [
+        {
+          value: { type: String, required: true, trim: true },
+          label: { type: String, required: true, trim: true },
+        },
+      ],
+      default: [],
     },
   },
   {
