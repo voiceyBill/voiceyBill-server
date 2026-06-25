@@ -114,6 +114,7 @@ const userSchema = new Schema<UserDocument>(
     budgetImbalanceNotificationsEnabled: {
       type: Boolean,
       default: true,
+    },
     customCategories: {
       type: [
         {
