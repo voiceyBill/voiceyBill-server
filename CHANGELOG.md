@@ -1,5 +1,61 @@
 # Changelog
 
+## [1.3.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.2.0...backend-v1.3.0) (2026-07-30)
+
+
+### Features
+
+* add budget tracking feature to mobile app ([bf76c59](https://github.com/voiceyBill/voiceyBill-server/commit/bf76c59995639fc3258814a55ec8bbbffdbf9052))
+* Add budget tracking feature to mobile app ([d7e9ad1](https://github.com/voiceyBill/voiceyBill-server/commit/d7e9ad1997ee268ee80f14795da9e02a770f3e97))
+* Add combined /analytics/dashboard endpoint ([a7c792d](https://github.com/voiceyBill/voiceyBill-server/commit/a7c792dd8123dd29e6302bf129a281de9416a44c))
+* Add Google OAuth authentication backend support ([#126](https://github.com/voiceyBill/voiceyBill-server/issues/126)) ([fd4122a](https://github.com/voiceyBill/voiceyBill-server/commit/fd4122a707d0ba5041aa34e9193e2ca4683a7499))
+* **api:** Currency v2 migration - exchange rate service, cron jobs, … ([c980e15](https://github.com/voiceyBill/voiceyBill-server/commit/c980e15f22cf46632a3bd6ca052caa09b76884d8))
+* **api:** currency v2 migration - exchange rate service, cron jobs, currency constants ([223bff7](https://github.com/voiceyBill/voiceyBill-server/commit/223bff723f18e091d07b7d3f6afee7423d07aeb9))
+* **budget:** validate budgets against the user's real categories ([98554c0](https://github.com/voiceyBill/voiceyBill-server/commit/98554c00e50734e533b8e98d80fe7447b9672fb8))
+* **categories:** Add custom category CRUD API for issue [#124](https://github.com/voiceyBill/voiceyBill-server/issues/124) ([#109](https://github.com/voiceyBill/voiceyBill-server/issues/109)) ([e98a4e7](https://github.com/voiceyBill/voiceyBill-server/commit/e98a4e76b5720e2fb3bb78463986e7003cdc70b1))
+* **client:** Handled transaction CSV export on frontend ([#137](https://github.com/voiceyBill/voiceyBill-server/issues/137)) ([e9ed4e1](https://github.com/voiceyBill/voiceyBill-server/commit/e9ed4e1f2dac3f1bbadf1d2c8c0e6b880d70a132))
+* Revoke refresh tokens with a per-user tokenVersion ([0759aca](https://github.com/voiceyBill/voiceyBill-server/commit/0759aca435f452ec9d8943ae525161f336246af4))
+* **server:** Add secure delete account API with authentication ([75ded9c](https://github.com/voiceyBill/voiceyBill-server/commit/75ded9c79354147e4185fcc8fe48e4cdcf1c9525))
+* **server:** category-name hardening and request performance logging ([30900bd](https://github.com/voiceyBill/voiceyBill-server/commit/30900bd366034d504409cee8d668b7756541210d))
+* **server:** Category-name hardening and request performance logging ([25fa390](https://github.com/voiceyBill/voiceyBill-server/commit/25fa3903159edf7d4f5bab983c18e410e16fafd4))
+* **transaction:** Added backend of CSV Export Functionality to the Transaction History Dashboard ([#114](https://github.com/voiceyBill/voiceyBill-server/issues/114)) ([7e68c80](https://github.com/voiceyBill/voiceyBill-server/commit/7e68c802c15f6737b8d63609ebde36141676d16c))
+* **voice:** classify voice & receipt into the user's real categories ([c33269b](https://github.com/voiceyBill/voiceyBill-server/commit/c33269b4b9d3e0da395fb2de21f3e518204859cb))
+
+
+### Bug Fixes
+
+* Add backend support for custom budget categories ([#143](https://github.com/voiceyBill/voiceyBill-server/issues/143)) ([122e321](https://github.com/voiceyBill/voiceyBill-server/commit/122e3211820957cbb071a515e199253ddbf28db9))
+* **api:** cast bulk-imported dates to Date and expand range filter ([2accb3e](https://github.com/voiceyBill/voiceyBill-server/commit/2accb3ec87789dc122dc0663161fdf0bc099c1ca))
+* **api:** Cast bulk-imported dates to Date and expand range filter ([fd12439](https://github.com/voiceyBill/voiceyBill-server/commit/fd124393962757efc912d3674c9d9472d4f66a84))
+* **api:** correct env variable names in currency cron and remove duplicate mongoose index ([b8fb42f](https://github.com/voiceyBill/voiceyBill-server/commit/b8fb42f6365ce59804fee427d8305b80aee3dce6))
+* **auth:** Add proper password error message ([b242660](https://github.com/voiceyBill/voiceyBill-server/commit/b242660419dab45ed6c2a70beb5c0ba1885388f4))
+* **auth:** Enforce registration password rules during password change ([37dc9b7](https://github.com/voiceyBill/voiceyBill-server/commit/37dc9b7bc0d507d7b428c6e432c5bb8a1d718279))
+* **auth:** Enforce registration password rules during password change ([936d73b](https://github.com/voiceyBill/voiceyBill-server/commit/936d73b960dbb884ee1e6998971e2ed0c9e67235))
+* **backend:** Merge fallback currencies with provider response to include PKR ([#113](https://github.com/voiceyBill/voiceyBill-server/issues/113)) ([95e5797](https://github.com/voiceyBill/voiceyBill-server/commit/95e5797cfdaaca5c4dcfb615911eef0457d37740))
+* **cron:** Propagate Mongoose session to report job transaction writes ([#129](https://github.com/voiceyBill/voiceyBill-server/issues/129)) ([1ee7cee](https://github.com/voiceyBill/voiceyBill-server/commit/1ee7cee4358e5df1531ccfab2ccb80b57c574b4d))
+* enforce monthly budget limits and return uncapped usage percentage ([fe041c0](https://github.com/voiceyBill/voiceyBill-server/commit/fe041c030f57e8b79c6fa09e2e057906243ddad5))
+* Enforce monthly budget limits and return uncapped usage percentage ([d8e4515](https://github.com/voiceyBill/voiceyBill-server/commit/d8e4515027c83ff4f7487a0ecf41c3284a23baed))
+* Escape search keywords before building the transaction query ([80c349b](https://github.com/voiceyBill/voiceyBill-server/commit/80c349b377734a3ed2ba7d6312cc2590425747ca))
+* Escape search keywords before building the transaction query ([cd139a2](https://github.com/voiceyBill/voiceyBill-server/commit/cd139a2f2b948f25f0585f107d63ac67afc61a2a))
+* **google-auth:** Move GOOGLE_CLIENT_ID guard to request-time to prev… ([87b6a72](https://github.com/voiceyBill/voiceyBill-server/commit/87b6a72167e92cc2356cf440dc313b2bf572873a))
+* **google-auth:** move GOOGLE_CLIENT_ID guard to request-time to prevent Vercel crash ([89e6345](https://github.com/voiceyBill/voiceyBill-server/commit/89e63456bf2a92efea008bd62df8548333167825))
+* Make budget validation and expense writes atomic ([2cc18a2](https://github.com/voiceyBill/voiceyBill-server/commit/2cc18a2d03a4fddae896b7676f9f0d76eecc9dea))
+* Override the transitive multer pinned by platform-express ([269f4f0](https://github.com/voiceyBill/voiceyBill-server/commit/269f4f00e228a5a700d15b9d716bb43e710d25b7))
+* Performance (indexes, cold-start) + category-aware voice/budget ([e86051b](https://github.com/voiceyBill/voiceyBill-server/commit/e86051b2137b5e41b8289b85a135db1d76a734da))
+* Production hardening — auth revocation, atomic budget writes, rate-limit fix ([9a2c4c6](https://github.com/voiceyBill/voiceyBill-server/commit/9a2c4c6ae5d468450b326f13882b185724d0148e))
+* Reject unsupported image uploads instead of hanging ([6f2239c](https://github.com/voiceyBill/voiceyBill-server/commit/6f2239cb45d8a0253cf857f2c35909fe81295fe9))
+* Reject unsupported image uploads instead of hanging ([717cc94](https://github.com/voiceyBill/voiceyBill-server/commit/717cc943fc4654ff6d9bbf9178b6859e8c691bcb))
+* **server:** group categories case-insensitively and calculate percentage with decimals ([c7693a9](https://github.com/voiceyBill/voiceyBill-server/commit/c7693a93b07fbd2048ee310ab86f537fb361227e))
+* **server:** Group categories case-insensitively and calculate percentage with decimals ([d84050d](https://github.com/voiceyBill/voiceyBill-server/commit/d84050d3bbd551150780a388ea70494abb5087c7))
+* Trust the Vercel proxy and raise the JSON body limit ([69ef7a6](https://github.com/voiceyBill/voiceyBill-server/commit/69ef7a66ddc74eb66a70bf87b52cfccd0a8c466b))
+* **validation:** Allow decimal amounts less than 1 in transactions ([821c835](https://github.com/voiceyBill/voiceyBill-server/commit/821c835010e6e1135ada86b91329dde1f4d5ff0b))
+* **validation:** Allow decimal amounts less than 1 in transactions ([5a2499e](https://github.com/voiceyBill/voiceyBill-server/commit/5a2499ed7dbbb8851e5f0c914dba96021823adbb))
+
+
+### Performance Improvements
+
+* Skip the category count query when categories exist ([fb72a00](https://github.com/voiceyBill/voiceyBill-server/commit/fb72a00109d4a341a4d938d7d5f51aa77f137f59))
+
 ## [1.2.0](https://github.com/voiceyBill/voiceyBill-server/compare/backend-v1.1.0...backend-v1.2.0) (2026-05-29)
 
 
